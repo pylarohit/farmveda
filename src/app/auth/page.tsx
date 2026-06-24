@@ -13,7 +13,7 @@ export default function AuthPage() {
 
     const handleLogin = async (provider: "google" | "otp") => {
         const { error } = await supabase.auth.signInWithOAuth({
-            provider,
+            provider: "google",
             options: {
                 redirectTo: `${window.location.origin}/auth/callback`,
                 queryParams: {
@@ -62,7 +62,7 @@ export default function AuthPage() {
                         {/* Phone Number Login */}
                         <div className="flex flex-col gap-1.5 w-full mb-4">
                             <label className="text-xs font-bold text-slate-500 tracking-wider uppercase mb-1">
-                                MOBILE NUMBER
+                                Email Login
                             </label>
 
                             <div className="relative flex items-center w-full mb-3">
