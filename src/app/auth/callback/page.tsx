@@ -39,12 +39,11 @@ export default function CallbackPage() {
                         console.error("Error checking onboarding status:", dbError.message);
                     }
 
-                    const onboardingDoneLocal = localStorage.getItem("isOnboardingDone") === "true";
-                    const isVerified = userData?.is_verified || onboardingDoneLocal;
+                    const isVerified = userData?.is_verified;
 
                     if (isVerified) {
                         toast.success(`Welcome back, ${session.user.email || "User"}!`);
-                        router.push("/dashboard");
+                        router.push("/home");
                     } else {
                         // User needs onboarding
                         setNeedsOnboarding(true);
@@ -64,12 +63,11 @@ export default function CallbackPage() {
                                     .eq("id", currentSession.user.id)
                                     .maybeSingle();
 
-                                const onboardingDoneLocal = localStorage.getItem("isOnboardingDone") === "true";
-                                const isVerified = userData?.is_verified || onboardingDoneLocal;
+                                const isVerified = userData?.is_verified;
 
                                 if (isVerified) {
                                     toast.success(`Welcome back, ${currentSession.user.email || "User"}!`);
-                                    router.push("/dashboard");
+                                    router.push("/home");
                                 } else {
                                     setNeedsOnboarding(true);
                                     setValidating(false);

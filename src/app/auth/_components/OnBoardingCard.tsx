@@ -22,6 +22,7 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import { StepIndicator } from "./StepIndicator";
+import OnboardCard from "@/components/forgeui/onboard-card";
 import {
     ChevronLeft,
     ChevronRight,
@@ -123,7 +124,8 @@ export function OnboardingCard() {
     function prevStep() { if (step > 1) setStep(s => s - 1); }
 
     async function finish() {
-        setLoading(true);
+        setStep(4); // Show the OnboardCard loading state
+        
         try {
             const { data: { session } } = await supabase.auth.getSession();
             if (!session?.user) {
@@ -148,18 +150,39 @@ export function OnboardingCard() {
 
             if (error) {
                 toast.error("Failed to save: " + error.message);
+                setStep(3); // Go back if error
                 return;
             }
 
             localStorage.setItem("isOnboardingDone", "true");
-            toast.success("Welcome to Farmveda! 🌾");
-            router.push("/home");
+            
+            // Wait for the animation to play before redirecting
+            setTimeout(() => {
+                toast.success("Welcome to Farmveda! 🌾");
+                router.push("/home");
+            }, 3000);
+            
         } catch (err) {
             console.error("Onboarding error:", err);
             toast.error("An unexpected error occurred.");
-        } finally {
-            setLoading(false);
+            setStep(3);
         }
+    }
+
+    // ── Full-screen loading state ──
+    if (step === 4) {
+        return (
+            <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-white animate-in fade-in duration-500">
+                <div className="scale-[1.5] origin-center">
+                    <OnboardCard 
+                        step1="Profile Verified" 
+                        step2="Configuring Farmveda" 
+                        step3="Loading Dashboard" 
+                        duration={2500}
+                    />
+                </div>
+            </div>
+        );
     }
 
     return (

@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono, Sora, Inter, Raleway } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "react-hot-toast";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import { UserDataProvider } from "@/context/UserDataProvider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -47,7 +49,11 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} ${sora.variable} ${inter.variable} ${raleway.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
-        {children}
+        <UserDataProvider>
+          <TooltipProvider>
+            {children}
+          </TooltipProvider>
+        </UserDataProvider>
         <Toaster />
       </body>
     </html>
