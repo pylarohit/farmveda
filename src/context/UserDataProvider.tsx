@@ -117,6 +117,7 @@ export function UserDataProvider({ children }: { children: React.ReactNode }) {
             .from("mentors")
             .insert([
               {
+                id: authUser.id,
                 full_name: name,
                 email: authUser.email,
                 avatar,
@@ -165,6 +166,7 @@ export function UserDataProvider({ children }: { children: React.ReactNode }) {
             .from("users")
             .insert([
               {
+                id: authUser.id,
                 userName: name,
                 userEmail: authUser.email,
                 avatar,
