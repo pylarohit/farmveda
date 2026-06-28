@@ -6,6 +6,7 @@ import SlidingCards from "../_components/SlidingCard";
 import { Sprout, Plus } from "lucide-react";
 import { MarketPricesWidget } from "@/components/market-prices-widget";
 import { WeatherWidget } from "@/components/weather-widget";
+import { NewsWidget } from "@/components/news-widget";
 
 export default function HomePage() {
   const { user } = useUserData();
@@ -58,6 +59,13 @@ export default function HomePage() {
           <MarketPricesWidget />
         </div>
         
+      </div>
+
+      {/* ── SEPARATOR & NEWS SECTION ───────────────────────────────────── */}
+      <div className="mt-12 mb-6 w-full">
+        <hr className="border-slate-200 mb-8" />
+        <h2 className="text-2xl font-bold text-slate-800 font-sora tracking-tight mb-6">Today's News</h2>
+        <NewsWidget />
       </div>
     </div>
   );

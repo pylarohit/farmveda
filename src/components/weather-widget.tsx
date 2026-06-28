@@ -39,7 +39,7 @@ export function WeatherWidget() {
         const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=temperature_2m_max,temperature_2m_min,weathercode&timezone=auto&forecast_days=4`;
         const res = await fetch(url);
         const data = await res.json();
-        
+
         if (data.daily) {
           const parsed = data.daily.time.map((timeStr: string, idx: number) => ({
             date: timeStr,
@@ -122,7 +122,7 @@ export function WeatherWidget() {
               <div className="w-20 font-semibold text-sm text-slate-700 font-inter">
                 {formatDate(day.date, idx)}
               </div>
-              
+
               {/* Icon & Description */}
               <div className="flex items-center gap-3 flex-1 px-4">
                 {getWeatherIcon(day.code)}
@@ -130,7 +130,7 @@ export function WeatherWidget() {
                   {getWeatherDesc(day.code)}
                 </span>
               </div>
-              
+
               {/* High/Low */}
               <div className="flex items-center gap-3 text-sm font-inter">
                 <span className="font-bold text-slate-800">{day.maxTemp}°</span>
