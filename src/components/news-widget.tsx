@@ -29,14 +29,12 @@ export function NewsWidget() {
         // Fetch news related to farming/agriculture that has images
         // We use newsdata.io based on the pub_ api key format
         const url = `https://newsdata.io/api/1/news?apikey=${apiKey}&q=agriculture OR farming OR crops&language=en&image=1`;
-        const res = await fetch(url);
+        const res = await fetch(url, { cache: "no-store" });
         const data = await res.json();
         
         if (data.results) {
-          // Filter out articles without images just in case, and take first 4
-          const validNews = data.results
-            .filter((item: any) => item.image_url)
-            .slice(0, 4);
+          // Filter out articles without images
+          const validNews = data.results.filter((item: any) => item.image_url);
           setNews(validNews);
         }
       } catch (error) {
@@ -65,9 +63,9 @@ export function NewsWidget() {
   return (
     <div className="w-full">
       {loading ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="flex gap-6 overflow-x-auto pb-6 custom-scrollbar snap-x">
           {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="bg-white rounded-3xl h-[280px] animate-pulse shadow-sm border border-slate-100 flex flex-col">
+            <div key={i} className="bg-white rounded-3xl h-[280px] w-[280px] sm:w-[300px] shrink-0 snap-start animate-pulse shadow-sm border border-slate-100 flex flex-col">
               <div className="w-full h-[140px] bg-slate-200 rounded-t-3xl"></div>
               <div className="p-5 flex flex-col gap-3">
                 <div className="h-4 w-full bg-slate-200 rounded"></div>
@@ -78,14 +76,14 @@ export function NewsWidget() {
           ))}
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="flex gap-6 overflow-x-auto pb-6 custom-scrollbar snap-x">
           {news.map((article) => (
             <a 
               key={article.article_id}
               href={article.link}
               target="_blank"
               rel="noopener noreferrer"
-              className="group bg-white rounded-3xl overflow-hidden shadow-sm border border-slate-100 hover:shadow-md hover:border-slate-300 transition-all cursor-pointer flex flex-col"
+              className="group bg-white rounded-3xl w-[280px] sm:w-[300px] shrink-0 snap-start overflow-hidden shadow-sm border border-slate-100 hover:shadow-md hover:border-slate-300 transition-all cursor-pointer flex flex-col"
             >
               {/* Thumbnail Container */}
               <div className="relative w-full h-[150px] overflow-hidden bg-slate-100">
