@@ -88,7 +88,7 @@ const SlidingCards = () => {
   };
 
   return (
-    <div className="relative w-full max-w-[895px] mr-auto p-4 pl-0 group select-none">
+    <div className="relative w-full p-4 pl-0 group select-none">
 
       {/* Main Card Container */}
       <div className="relative h-64 overflow-hidden rounded-2xl border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_12px_40px_rgb(0,0,0,0.08)] bg-white transition-all duration-300">

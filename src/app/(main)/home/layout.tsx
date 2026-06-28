@@ -45,7 +45,7 @@ export default function HomeLayout({ children }: { children: ReactNode }) {
                     </header>
 
                     {/* Main Content Area */}
-                    <main className="flex-1 p-6 lg:p-8 w-full max-w-7xl mx-auto">
+                    <main className="flex-1 px-6 pb-6 pt-2 lg:px-8 lg:pb-8 lg:pt-4 w-full">
                         {children}
                     </main>
                 </div>
