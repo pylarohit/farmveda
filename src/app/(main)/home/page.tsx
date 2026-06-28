@@ -3,7 +3,7 @@
 import { useUserData } from "@/context/UserDataProvider";
 import AnimatedButton from "@/components/ui/animated-button";
 import SlidingCards from "../_components/SlidingCard";
-import { Sprout } from "lucide-react";
+import { Sprout, Plus } from "lucide-react";
 
 export default function HomePage() {
   const { user } = useUserData();
@@ -25,27 +25,23 @@ export default function HomePage() {
           <Sprout className="h-4 w-4 text-slate-900 stroke-[1.8]" />
           <span>
             <span className="font-bold">Add Farm</span>
-      
+
           </span>
         </AnimatedButton>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {/* Blank Placeholder Cards */}
-        <div className="h-48 rounded-2xl border border-slate-200 bg-white shadow-sm flex items-center justify-center text-slate-400">
-          Weather Overview
-        </div>
-        <div className="h-48 rounded-2xl border border-slate-200 bg-white shadow-sm flex items-center justify-center text-slate-400">
-          Crop Insights
-        </div>
-        <div className="h-48 rounded-2xl border border-slate-200 bg-white shadow-sm flex items-center justify-center text-slate-400">
-          Market Prices
-        </div>
+      <div className="w-full max-w-[895px] mr-auto">
+        <button className="w-full min-h-[280px] rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50 hover:bg-slate-100 transition-colors shadow-sm flex flex-col items-center justify-center cursor-pointer group">
+          <div className="h-12 w-12 rounded-full bg-slate-200/50 flex items-center justify-center group-hover:scale-110 transition-transform mb-3">
+            <Plus className="h-6 w-6 text-slate-500 group-hover:text-slate-700 transition-colors" />
+          </div>
+          <span className="font-semibold text-slate-500 group-hover:text-slate-700 font-inter tracking-wide transition-colors">
+            ADD FARMS
+          </span>
+        </button>
       </div>
 
-      <div className="h-96 rounded-2xl border border-slate-200 bg-white shadow-sm flex items-center justify-center text-slate-400">
-        Main Activity Area
-      </div>
+
     </div>
   );
 }

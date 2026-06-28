@@ -89,19 +89,19 @@ const SlidingCards = () => {
 
   return (
     <div className="relative w-full max-w-[895px] mr-auto p-4 pl-0 group select-none">
-      
+
       {/* Main Card Container */}
       <div className="relative h-64 overflow-hidden rounded-2xl border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_12px_40px_rgb(0,0,0,0.08)] bg-white transition-all duration-300">
-        
+
         {/* Navigation Arrows (Visible on Hover) */}
-        <button 
-          onClick={handlePrev} 
+        <button
+          onClick={handlePrev}
           className="absolute left-4 top-1/2 -translate-y-1/2 z-20 h-9 w-9 rounded-full bg-white/90 hover:bg-white border border-slate-200/60 shadow-md flex items-center justify-center text-slate-700 hover:text-slate-900 transition-all opacity-0 group-hover:opacity-100 hover:scale-105 cursor-pointer"
         >
           <ChevronLeft className="h-5 w-5" />
         </button>
-        <button 
-          onClick={handleNext} 
+        <button
+          onClick={handleNext}
           className="absolute right-4 top-1/2 -translate-y-1/2 z-20 h-9 w-9 rounded-full bg-white/90 hover:bg-white border border-slate-200/60 shadow-md flex items-center justify-center text-slate-700 hover:text-slate-900 transition-all opacity-0 group-hover:opacity-100 hover:scale-105 cursor-pointer"
         >
           <ChevronRight className="h-5 w-5" />
@@ -117,7 +117,7 @@ const SlidingCards = () => {
               key={card.id}
               className="min-w-full h-full flex flex-col md:flex-row items-center relative overflow-hidden"
             >
-              
+
               {/* Background Accent Glow */}
               <div
                 className={`absolute -top-14 -left-5 bg-gradient-to-r ${card.gradient} opacity-25 blur-2xl w-36 h-48 rounded-full`}
@@ -126,7 +126,7 @@ const SlidingCards = () => {
               {/* Left Side - Content */}
               <div className="flex-1 px-8 md:px-12 py-8 md:py-10 z-10">
                 <div className="max-w-md text-left flex flex-col items-start">
-                  
+
 
 
                   {/* Title */}
@@ -154,7 +154,7 @@ const SlidingCards = () => {
 
               {/* Right Side - Visual Element */}
               <div className="hidden md:flex flex-1 h-full relative overflow-hidden group/image">
-                
+
                 {/* Curved visual separator */}
                 <div className="absolute inset-y-0 -left-6 w-12 bg-white transform -skew-x-6 z-10" />
 
@@ -175,7 +175,7 @@ const SlidingCards = () => {
                   </span>
                 </div>
               </div>
-              
+
             </div>
           ))}
         </div>
@@ -187,15 +187,14 @@ const SlidingCards = () => {
           <button
             key={index}
             onClick={() => goToSlide(index)}
-            className={`transition-all duration-300 cursor-pointer ${
-              index === currentSlide
+            className={`transition-all duration-300 cursor-pointer ${index === currentSlide
                 ? "w-8 h-2 bg-blue-600 rounded-full"
                 : "w-2 h-2 bg-slate-200 hover:bg-slate-300 rounded-full"
-            }`}
+              }`}
           />
         ))}
       </div>
-      
+
     </div>
   );
 };
