@@ -19,20 +19,10 @@ export function NewsWidget() {
   useEffect(() => {
     async function fetchNews() {
       try {
-        const apiKey = process.env.NEXT_PUBLIC_NEWS_API_KEY;
-        if (!apiKey) {
-          console.warn("No News API Key found.");
-          setLoading(false);
-          return;
-        }
-        
-        // Fetch news related to farming/agriculture that has images
-        // We use newsdata.io based on the pub_ api key format
-        const url = `https://newsdata.io/api/1/news?apikey=${apiKey}&q=agriculture OR farming OR crops&language=en&image=1`;
-        const res = await fetch(url, { cache: "no-store" });
+        const res = await fetch("/api/news");
         const data = await res.json();
         
-        if (data.results) {
+        if (data && data.results) {
           // Filter out articles without images
           const validNews = data.results.filter((item: any) => item.image_url);
           setNews(validNews);

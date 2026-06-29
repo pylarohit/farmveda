@@ -24,12 +24,13 @@ export function MarketPricesWidget() {
   useEffect(() => {
     async function fetchData() {
       try {
-        const apiKey = "579b464db66ec23bdd000001cdd3946e44ce4aad7209ff7b23ac571b";
-        const url = `https://api.data.gov.in/resource/9ef84268-d588-465a-a308-a864a43d0070?api-key=${apiKey}&format=json&limit=50`;
-        const res = await fetch(url);
+        const res = await fetch("/api/market-prices");
         const json = await res.json();
-        if (json.records) {
+        console.log("Market prices response:", json);
+        if (json && json.records) {
           setData(json.records);
+        } else {
+          console.error("No records found in response:", json);
         }
       } catch (error) {
         console.error("Error fetching market prices:", error);
