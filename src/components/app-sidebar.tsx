@@ -80,19 +80,14 @@ export function AppSidebar() {
 
   const [activeTab, setActiveTab] = useState<"my-farms" | "shared-farms">("my-farms");
   const [isFarmSpaceOpen, setIsFarmSpaceOpen] = useState(true);
-  const [isAddFarmOpen, setIsAddFarmOpen] = useState(false);
-  const [newFarmName, setNewFarmName] = useState("");
-  const [newCropType, setNewCropType] = useState("");
-  const [newFarmArea, setNewFarmArea] = useState("");
-  const [newLocation, setNewLocation] = useState("");
-  const [addLoading, setAddLoading] = useState(false);
 
   interface Farm {
     id: string;
-    name: string;
-    crop_type: string;
-    area: string;
-    location: string;
+    name?: string;
+    field_name?: string;
+    crop_type?: string;
+    area?: string;
+    location?: string;
   }
   const [farms, setFarms] = useState<Farm[]>([]);
 
@@ -129,55 +124,16 @@ export function AppSidebar() {
       }
     }
     loadFarms();
-  }, [user, supabase]);
 
-  const handleAddFarm = async () => {
-    if (!newFarmName.trim() || !user) return;
-    setAddLoading(true);
-
-    const newFarm = {
-      id: crypto.randomUUID(),
-      user_id: user.id,
-      name: newFarmName.trim(),
-      crop_type: newCropType.trim() || "Unspecified",
-      area: newFarmArea.trim() || "Unspecified",
-      location: newLocation.trim() || "Unspecified",
+    const handleFarmAdded = () => {
+      loadFarms();
     };
-
-    try {
-      const { error } = await supabase.from("farms").insert([newFarm]);
-      if (error) throw error;
-
-      const updatedFarms = [...farms, {
-        id: newFarm.id,
-        name: newFarm.name,
-        crop_type: newFarm.crop_type,
-        area: newFarm.area,
-        location: newFarm.location
-      }];
-      setFarms(updatedFarms);
-      localStorage.setItem(`farms_${user.id}`, JSON.stringify(updatedFarms));
-      toast.success("Farm space added successfully!");
-    } catch (err) {
-      const updatedFarms = [...farms, {
-        id: newFarm.id,
-        name: newFarm.name,
-        crop_type: newFarm.crop_type,
-        area: newFarm.area,
-        location: newFarm.location
-      }];
-      setFarms(updatedFarms);
-      localStorage.setItem(`farms_${user.id}`, JSON.stringify(updatedFarms));
-      toast.success("Farm space added locally!");
-    } finally {
-      setAddLoading(false);
-      setIsAddFarmOpen(false);
-      setNewFarmName("");
-      setNewCropType("");
-      setNewFarmArea("");
-      setNewLocation("");
-    }
-  };
+    window.addEventListener('farmAdded', handleFarmAdded);
+    
+    return () => {
+      window.removeEventListener('farmAdded', handleFarmAdded);
+    };
+  }, [user, supabase]);
 
   async function signOut() {
     setSignoutLoading(true);
@@ -324,7 +280,7 @@ export function AppSidebar() {
                         <div className="flex items-center gap-2.5 min-w-0">
                           <LuFolder className="text-slate-400 text-base flex-shrink-0 group-hover:text-slate-950 transition-colors" />
                           <span className="text-sm font-semibold truncate">
-                            {farm.name}
+                            {farm.name || (farm.field_name ? (farm.field_name.includes("|||") ? farm.field_name.split("|||")[0] : farm.field_name) : "Unnamed Farm")}
                           </span>
                         </div>
                         <Image
@@ -343,7 +299,7 @@ export function AppSidebar() {
                   {/* Create New Option */}
                   <button
                     type="button"
-                    onClick={() => setIsAddFarmOpen(true)}
+                    onClick={() => window.dispatchEvent(new Event('openAddFarmWizard'))}
                     className="w-full flex items-center gap-2.5 py-2 px-3.5 rounded-full hover:bg-white hover:text-slate-950 text-slate-400 hover:font-bold transition-all cursor-pointer text-xs font-semibold font-inter text-left group"
                   >
                     <LuLayers className="text-slate-400 group-hover:text-slate-950 text-sm transition-colors" />
@@ -561,96 +517,6 @@ export function AppSidebar() {
           </Popover>
         )}
       </SidebarFooter>
-
-      {/* Custom Modal Overlay for adding farm space */}
-      {isAddFarmOpen && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-          <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-xl shadow-2xl p-6 space-y-4 text-slate-200 animate-in zoom-in-95 duration-200">
-            <div>
-              <h3 className="text-lg font-bold text-white flex items-center gap-2 font-inter">
-                <LuShapes className="text-emerald-500 text-xl" />
-                Add New Farm Space
-              </h3>
-              <p className="text-xs text-slate-400 mt-1 font-inter">
-                Enter your farm details to register your farming space.
-              </p>
-            </div>
-
-            <div className="space-y-4">
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-slate-400 block font-inter">
-                  Farm Name
-                </label>
-                <input
-                  type="text"
-                  placeholder="e.g. North Fields Paddy"
-                  value={newFarmName}
-                  onChange={(e) => setNewFarmName(e.target.value)}
-                  className="w-full h-10 px-3 bg-slate-950 border border-slate-800 rounded-lg text-sm text-white focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all font-inter"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-slate-400 block font-inter">
-                    Crop Type
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="e.g. Rice"
-                    value={newCropType}
-                    onChange={(e) => setNewCropType(e.target.value)}
-                    className="w-full h-10 px-3 bg-slate-950 border border-slate-800 rounded-lg text-sm text-white focus:outline-none focus:border-emerald-500 transition-all font-inter"
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-slate-400 block font-inter">
-                    Farm Area (Size)
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="e.g. 3 Acres"
-                    value={newFarmArea}
-                    onChange={(e) => setNewFarmArea(e.target.value)}
-                    className="w-full h-10 px-3 bg-slate-950 border border-slate-800 rounded-lg text-sm text-white focus:outline-none focus:border-emerald-500 transition-all font-inter"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-slate-400 block font-inter">
-                  Location
-                </label>
-                <input
-                  type="text"
-                  placeholder="e.g. Guntur, AP"
-                  value={newLocation}
-                  onChange={(e) => setNewLocation(e.target.value)}
-                  className="w-full h-10 px-3 bg-slate-950 border border-slate-800 rounded-lg text-sm text-white focus:outline-none focus:border-emerald-500 transition-all font-inter"
-                />
-              </div>
-            </div>
-
-            <div className="flex items-center justify-end gap-2 pt-2">
-              <button
-                type="button"
-                onClick={() => setIsAddFarmOpen(false)}
-                className="h-10 px-4 rounded-lg bg-transparent hover:bg-slate-800 text-sm font-medium text-slate-400 hover:text-white transition-all cursor-pointer font-inter"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={handleAddFarm}
-                disabled={!newFarmName.trim() || addLoading}
-                className="h-10 px-5 rounded-lg bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-sm font-semibold text-white transition-all cursor-pointer flex items-center gap-2 font-inter"
-              >
-                {addLoading ? "Adding..." : "Add Farm"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </Sidebar>
   );
 }

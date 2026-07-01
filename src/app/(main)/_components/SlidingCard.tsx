@@ -165,7 +165,7 @@ const SlidingCards = () => {
                   width={400}
                   height={256}
                   className="absolute inset-0 w-full h-full object-cover z-0 transition-transform duration-700 ease-out group-hover/image:scale-105"
-                  priority={card.id === 1}
+                  priority={true}
                 />
 
                 {/* Card ID indicator */}
