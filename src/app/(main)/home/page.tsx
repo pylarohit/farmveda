@@ -10,6 +10,7 @@ import { WeatherWidget } from "@/components/weather-widget";
 import { NewsWidget } from "@/components/news-widget";
 import { AddFarmWizard } from "@/components/add-farm-wizard";
 import { createClient } from "@/lib/supabase/client";
+import Link from "next/link";
 
 export default function HomePage() {
   const { user } = useUserData();
@@ -109,10 +110,10 @@ export default function HomePage() {
                       </div>
 
                       {/* Bottom: View Button */}
-                      <div className="mt-4 pt-4 border-t border-slate-900/10">
-                        <button className="w-full bg-[#FF5A5F] hover:bg-[#FF3b40] text-white text-sm font-black px-4 py-2.5 rounded-xl transition-colors font-inter shadow-[2px_2px_0px_0px_rgba(15,23,42,1)] border-2 border-slate-900 active:shadow-none active:translate-y-[2px] active:translate-x-[2px] uppercase tracking-wide">
+                      <div className="mt-4 pt-4 border-t border-slate-900/10 flex">
+                        <Link href={`/farm/${farm.id}`} className="w-full flex justify-center items-center bg-[#FF5A5F] hover:bg-[#FF3b40] text-white text-sm font-black px-4 py-2.5 rounded-xl transition-colors font-inter shadow-[2px_2px_0px_0px_rgba(15,23,42,1)] border-2 border-slate-900 active:shadow-none active:translate-y-[2px] active:translate-x-[2px] uppercase tracking-wide">
                           View Farm
-                        </button>
+                        </Link>
                       </div>
                     </div>
                   );

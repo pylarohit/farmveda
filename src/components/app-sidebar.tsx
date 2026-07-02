@@ -185,17 +185,12 @@ export function AppSidebar() {
           </Highlighter>
         </div>
 
-        <Separator className="mt-3 mb-1 bg-slate-800" />
+        {/* Removed Separator to fix gap */}
       </SidebarHeader>
 
-
-
-
-
-
       <SidebarContent className="bg-[#0A0E1A] overflow-y-auto scrollbar-none">
-        <SidebarGroup>
-          <SidebarMenu className="p-2 space-y-2.5">
+        <SidebarGroup className="pt-4 mt-0">
+          <SidebarMenu className="px-2 pb-2 space-y-1">
             {/* Dashboard */}
             <SidebarMenuItem
               className={`flex cursor-pointer duration-200 ease-in-out rounded py-1 px-3

@@ -48,7 +48,7 @@ export default function RootLayout({
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} ${sora.variable} ${inter.variable} ${raleway.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">
+      <body className="min-h-full flex flex-col bg-slate-50 dark:bg-[#0A0E1A]">
         <UserDataProvider>
           <TooltipProvider>
             {children}

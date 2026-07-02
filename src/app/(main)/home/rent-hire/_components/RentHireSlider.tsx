@@ -22,7 +22,7 @@ const RentHireSlider = () => {
     },
     {
       id: 2,
-      title: "Rent Premium Equipment",
+      title: "Rent Farm Equipment",
       description: "Access heavy machinery, tractors, and specialized farming tools without the burden of ownership.",
       accent: "border-[#D3F36B]",
       gradient: "from-[#D3F36B] to-emerald-400",

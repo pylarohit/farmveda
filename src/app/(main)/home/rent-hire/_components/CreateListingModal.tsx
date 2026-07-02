@@ -92,7 +92,7 @@ export function CreateListingModal({ isOpen, onClose, onSuccess, editingListing 
         imageUrl = publicUrl;
       }
 
-      const payload = {
+      const payload: Record<string, any> = {
         user_id: user.id,
         title: formData.title,
         type: formData.type,

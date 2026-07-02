@@ -50,7 +50,7 @@ export default function RentAndHirePage() {
   const fetchConnections = async () => {
     if (!user) return;
     setConnectionsLoading(true);
-    
+
     const { data: messages, error } = await supabase
       .from('messages')
       .select('sender_id, receiver_id')
@@ -69,7 +69,7 @@ export default function RentAndHirePage() {
           .from('users')
           .select('id, userName, avatar')
           .in('id', Array.from(contactIds));
-        
+
         if (users) {
           setConnections(users);
         }
@@ -85,7 +85,8 @@ export default function RentAndHirePage() {
       setListings(prev => prev.filter(l => l.id !== id));
       toast.success("Listing deleted.");
     } else {
-      toast.error("Failed to delete listing.");
+      console.error("Delete Error:", error);
+      toast.error(`Failed: ${error.message}`);
     }
   };
 
@@ -98,25 +99,25 @@ export default function RentAndHirePage() {
   }, [user]);
 
   return (
-    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 h-[calc(100vh-100px)] flex flex-col">
 
-      <div className="flex flex-col lg:flex-row items-start justify-between gap-6 pb-10">
+      <div className="flex flex-col lg:flex-row items-start justify-between gap-6 h-full pb-0">
 
         {/* ── LEFT COLUMN (Widgets) ── */}
-        <div className="w-full lg:w-[340px] lg:flex-shrink-0 flex flex-col gap-6 lg:sticky lg:top-[104px] self-start">
+        <div className="w-full lg:w-[340px] lg:flex-shrink-0 flex flex-col gap-4 h-full">
 
           {/* Create Post Box */}
-          <div className="bg-white dark:bg-[#0A0E1A] rounded-[32px] p-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 border border-slate-100 dark:border-[#1E293B] flex flex-col items-center justify-center text-center gap-4 group">
-            <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-full text-blue-600 dark:text-blue-400 group-hover:bg-blue-600 group-hover:text-white transition-all duration-300 group-hover:scale-110 group-hover:shadow-lg group-hover:shadow-blue-500/20">
-              <Plus size={32} />
+          <div className="bg-white dark:bg-[#0A0E1A] rounded-[24px] p-4 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 border border-slate-100 dark:border-[#1E293B] flex flex-col items-center justify-center text-center gap-2 group">
+            <div className="bg-blue-50 dark:bg-blue-900/20 p-2.5 rounded-full text-blue-600 dark:text-blue-400 group-hover:bg-blue-600 group-hover:text-white transition-all duration-300 group-hover:scale-110 group-hover:shadow-lg group-hover:shadow-blue-500/20">
+              <Plus size={20} />
             </div>
             <div>
-              <h3 className="font-sora font-black text-slate-900 dark:text-white text-xl group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">Create a Listing</h3>
+              <h3 className="font-sora font-black text-slate-900 dark:text-white text-lg group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">Create a Listing</h3>
               <p className="text-sm font-medium text-slate-500 dark:text-slate-400 mt-1">Have equipment or skills to offer? Post them here.</p>
             </div>
             <button
               onClick={() => setIsModalOpen(true)}
-              className="w-full bg-[#1E6BFF] hover:bg-[#1655D0] text-white font-bold py-3.5 rounded-2xl text-sm transition-all shadow-md hover:shadow-blue-500/30 active:scale-95 mt-2 overflow-hidden relative"
+              className="w-full bg-[#1E6BFF] hover:bg-[#1655D0] text-white font-bold py-2.5 rounded-xl text-sm transition-all shadow-md hover:shadow-blue-500/30 active:scale-95 overflow-hidden relative"
             >
               <span className="relative z-10">Create Post</span>
               <div className="absolute inset-0 bg-white/20 translate-y-full hover:translate-y-0 transition-transform duration-300 ease-out"></div>
@@ -124,7 +125,7 @@ export default function RentAndHirePage() {
           </div>
 
           {/* Activity Box */}
-          <div className="bg-white dark:bg-[#0A0E1A] rounded-[32px] p-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-xl transition-all border border-slate-100 dark:border-[#1E293B] flex flex-col h-[400px] group/box">
+          <div className="bg-white dark:bg-[#0A0E1A] rounded-[32px] p-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-xl transition-all border border-slate-100 dark:border-[#1E293B] flex flex-col h-[450px] group/box">
             <h3 className="font-sora font-black text-slate-900 dark:text-white text-xl flex items-center justify-between mb-4 group-hover/box:text-slate-800 dark:group-hover/box:text-slate-100 transition-colors">
               <div className="flex items-center gap-2">
                 <Activity size={22} className="text-[#D3F36B] drop-shadow-sm" />
@@ -134,13 +135,13 @@ export default function RentAndHirePage() {
 
             {/* Tab Switcher */}
             <div className="flex bg-slate-100 dark:bg-[#1E293B] p-1 rounded-xl mb-4">
-              <button 
+              <button
                 onClick={() => setActivityTab('posts')}
                 className={`flex-1 text-xs font-bold py-2 rounded-lg transition-all ${activityTab === 'posts' ? 'bg-white dark:bg-[#0A0E1A] text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
               >
                 My Posts
               </button>
-              <button 
+              <button
                 onClick={() => setActivityTab('connections')}
                 className={`flex-1 text-xs font-bold py-2 rounded-lg transition-all ${activityTab === 'connections' ? 'bg-white dark:bg-[#0A0E1A] text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
               >
@@ -164,7 +165,7 @@ export default function RentAndHirePage() {
                           </p>
                         </div>
                         <div className="flex gap-1 opacity-0 group-hover/item:opacity-100 transition-opacity">
-                          <button 
+                          <button
                             onClick={() => {
                               setEditingListing(post);
                               setIsModalOpen(true);
@@ -173,7 +174,7 @@ export default function RentAndHirePage() {
                           >
                             <Edit size={14} />
                           </button>
-                          <button 
+                          <button
                             onClick={() => handleDeleteListing(post.id)}
                             className="p-1.5 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-md transition-colors"
                           >
@@ -211,7 +212,7 @@ export default function RentAndHirePage() {
         </div>
 
         {/* ── RIGHT COLUMN (Main Content) ── */}
-        <div className="flex-1 min-w-0 flex flex-col gap-6 w-full">
+        <div className="flex-1 min-w-0 flex flex-col gap-6 w-full h-full overflow-y-auto pr-2 pb-10 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
 
           {/* ── Top Banner / Advertisement Section ── */}
           <RentHireSlider />
@@ -312,7 +313,7 @@ export default function RentAndHirePage() {
         </div>
       </div>
 
-      <CreateListingModal 
+      <CreateListingModal
         isOpen={isModalOpen}
         onClose={() => {
           setIsModalOpen(false);
