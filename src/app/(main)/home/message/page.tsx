@@ -32,7 +32,7 @@ interface Contact {
 
 export default function MessagePage() {
   const searchParams = useSearchParams();
-  const { user, loading: userLoading } = useUserData();
+  const { user, loading: userLoading, onlineUsers, setUnreadMessages } = useUserData();
   const supabase = createClient();
 
   const [messages, setMessages] = useState<DBMessage[]>([]);
@@ -40,7 +40,13 @@ export default function MessagePage() {
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [activeContact, setActiveContact] = useState<Contact | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isUploading, setIsUploading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  // Clear unread messages badge when viewing the messages page
+  useEffect(() => {
+    setUnreadMessages(0);
+  }, [setUnreadMessages]);
 
   // Parse deep link params on load
   useEffect(() => {
@@ -52,20 +58,34 @@ export default function MessagePage() {
         const farmerId = searchParams.get('farmerId');
         const farmerName = searchParams.get('farmerName') || 'Farmer';
         
-        if (farmerId && farmerId !== user.id) {
+        if (farmerId && farmerId !== String(user.id)) {
           // Set active contact
           setActiveContact({
             id: farmerId,
             name: farmerName,
             avatar: null,
-            online: true,
+            online: false,
             lastMsg: 'Inquiry',
             time: 'Now'
           });
 
+          // Check if already shared
+          const { data: existingMsgs } = await supabase
+            .from('messages')
+            .select('id')
+            .eq('sender_id', String(user.id))
+            .eq('receiver_id', farmerId)
+            .eq('type', 'listing_card')
+            .contains('listing_details', { listingId: listingId })
+            .limit(1);
+
+          if (existingMsgs && existingMsgs.length > 0) {
+            return; // Already shared
+          }
+
           // Create the listing card message in Supabase
           const newMsg = {
-            sender_id: user.id,
+            sender_id: String(user.id),
             receiver_id: farmerId,
             content: 'Hi, I am interested in this listing.',
             type: 'listing_card' as MessageType,
@@ -223,7 +243,7 @@ export default function MessagePage() {
     setInputText("");
 
     const newMsg = {
-      sender_id: user.id,
+      sender_id: String(user.id),
       receiver_id: activeContact.id,
       content: content,
       type: 'text' as MessageType,
@@ -240,22 +260,57 @@ export default function MessagePage() {
     }
   };
 
-  const handleFileAttachment = async () => {
-    if (!user || !activeContact) return;
+  const handleFileAttachment = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!user || !activeContact || !e.target.files || e.target.files.length === 0) return;
     
-    // Simulate file attachment
-    const newMsg = {
-      sender_id: user.id,
-      receiver_id: activeContact.id,
-      content: 'Attached a document for reference.',
-      type: 'file' as MessageType,
-      file_details: {
-        name: 'field_map.pdf',
-        size: '2.4 MB'
-      }
-    };
+    const file = e.target.files[0];
+    e.target.value = ''; // Reset input
     
-    await supabase.from('messages').insert([newMsg]);
+    setIsUploading(true);
+    
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${user.id}-${Date.now()}.${fileExt}`;
+      
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('chat-attachments')
+        .upload(fileName, file);
+        
+      if (uploadError) throw uploadError;
+      
+      const { data: { publicUrl } } = supabase.storage
+        .from('chat-attachments')
+        .getPublicUrl(fileName);
+        
+      const fileSize = file.size < 1024 * 1024 
+        ? `${(file.size / 1024).toFixed(1)} KB` 
+        : `${(file.size / (1024 * 1024)).toFixed(1)} MB`;
+
+      const newMsg = {
+        sender_id: String(user.id),
+        receiver_id: activeContact.id,
+        content: 'Sent an attachment',
+        type: 'file' as MessageType,
+        file_details: {
+          name: file.name,
+          size: fileSize,
+          url: publicUrl,
+          type: file.type
+        }
+      };
+      
+      const { error: msgError } = await supabase.from('messages').insert([newMsg]);
+      if (msgError) throw msgError;
+      
+    } catch (error) {
+      console.error("Error uploading file:", error);
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   const handleDeleteChat = async () => {
@@ -263,8 +318,8 @@ export default function MessagePage() {
     
     // Optimistic UI update
     setMessages(prev => prev.filter(m => 
-      !( (m.sender_id === user.id && m.receiver_id === activeContact.id) || 
-         (m.receiver_id === user.id && m.sender_id === activeContact.id) )
+      !( (m.sender_id === String(user.id) && m.receiver_id === activeContact.id) || 
+         (m.receiver_id === String(user.id) && m.sender_id === activeContact.id) )
     ));
     setContacts(prev => prev.filter(c => c.id !== activeContact.id));
     setActiveContact(null);
@@ -282,7 +337,7 @@ export default function MessagePage() {
 
   if (userLoading || loading) {
     return (
-      <div className="flex h-[calc(100vh-120px)] w-full items-center justify-center bg-white dark:bg-[#0A0E1A] rounded-[32px] border border-slate-200 dark:border-[#1E293B] shadow-sm">
+      <div className="flex h-[calc(100vh-120px)] w-full items-center justify-center bg-transparent">
         <Loader2 className="w-10 h-10 text-blue-500 animate-spin" />
       </div>
     );
@@ -290,15 +345,15 @@ export default function MessagePage() {
 
   // Filter messages for the active contact
   const activeMessages = messages.filter(m => 
-    (m.sender_id === user?.id && m.receiver_id === activeContact?.id) ||
-    (m.receiver_id === user?.id && m.sender_id === activeContact?.id)
+    (m.sender_id === String(user?.id) && m.receiver_id === activeContact?.id) ||
+    (m.receiver_id === String(user?.id) && m.sender_id === activeContact?.id)
   );
 
   return (
-    <div className="flex h-[calc(100vh-120px)] w-full bg-white dark:bg-[#0A0E1A] rounded-[32px] border border-slate-200 dark:border-[#1E293B] shadow-sm overflow-hidden animate-in fade-in zoom-in-95 duration-300">
+    <div className="flex gap-6 h-[calc(100vh-120px)] w-full bg-transparent animate-in fade-in duration-300">
       
       {/* ── SIDEBAR (Contacts) ── */}
-      <div className="w-full md:w-[320px] lg:w-[360px] border-r border-slate-200 dark:border-[#1E293B] flex-col bg-slate-50/50 dark:bg-[#06080d]/50 hidden md:flex">
+      <div className="w-full md:w-[320px] lg:w-[360px] flex-col bg-white dark:bg-[#0A0E1A] hidden md:flex rounded-[32px] border border-slate-200 dark:border-[#1E293B] shadow-sm overflow-hidden">
         {/* Sidebar Header */}
         <div className="p-5 border-b border-slate-200 dark:border-[#1E293B]">
           <h2 className="text-2xl font-sora font-black text-slate-900 dark:text-white mb-5">Messages</h2>
@@ -336,7 +391,7 @@ export default function MessagePage() {
                     {contact.name.charAt(0)}
                   </div>
                 )}
-                {contact.online && (
+                {onlineUsers.has(String(contact.id)) && (
                   <div className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-green-500 border-2 border-white dark:border-[#0A0E1A] rounded-full"></div>
                 )}
               </div>
@@ -353,7 +408,7 @@ export default function MessagePage() {
       </div>
 
       {/* ── MAIN CHAT AREA ── */}
-      <div className="flex-1 flex flex-col bg-white dark:bg-[#0A0E1A] min-w-0 relative">
+      <div className="flex-1 flex flex-col bg-white dark:bg-[#0A0E1A] rounded-[32px] border border-slate-200 dark:border-[#1E293B] shadow-sm overflow-hidden relative min-w-0">
         
         {activeContact ? (
           <>
@@ -367,22 +422,16 @@ export default function MessagePage() {
                   <div className="w-11 h-11 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 font-bold text-lg shadow-sm">
                     {activeContact.name.charAt(0)}
                   </div>
-                  {activeContact.online && (
+                  {onlineUsers.has(String(activeContact.id)) && (
                     <div className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-green-500 border-2 border-white dark:border-[#0A0E1A] rounded-full"></div>
                   )}
                 </div>
                 <div>
                   <h3 className="font-sora font-bold text-slate-900 dark:text-white text-base leading-tight">{activeContact.name}</h3>
-                  <p className="text-xs font-medium text-green-500 mt-0.5">{activeContact.online ? 'Online now' : 'Offline'}</p>
+                  <p className="text-xs font-medium text-green-500 mt-0.5">{onlineUsers.has(String(activeContact.id)) ? 'Online now' : 'Offline'}</p>
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <button className="p-2.5 text-slate-500 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-full transition-colors">
-                  <Phone size={20} />
-                </button>
-                <button className="p-2.5 text-slate-500 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-full transition-colors">
-                  <Video size={20} />
-                </button>
                 <div className="w-[1px] h-6 bg-slate-200 dark:bg-[#1E293B] mx-1"></div>
                 <Popover>
                   <PopoverTrigger asChild>
@@ -411,7 +460,7 @@ export default function MessagePage() {
               </div>
 
               {activeMessages.map((msg) => {
-                const isMe = msg.sender_id === user?.id;
+                const isMe = msg.sender_id === String(user?.id);
                 const timestamp = msg.created_at ? new Date(msg.created_at) : new Date();
 
                 return (
@@ -421,7 +470,7 @@ export default function MessagePage() {
                     {msg.type === 'listing_card' && msg.listing_details && (
                       <div className={`mb-2 w-full max-w-[280px] sm:max-w-[340px] bg-white dark:bg-[#0A0E1A] rounded-[24px] overflow-hidden border ${isMe ? 'border-blue-200 dark:border-blue-900/50 shadow-lg shadow-blue-500/10' : 'border-slate-200 dark:border-[#1E293B] shadow-sm'}`}>
                         <div className="relative h-[160px] w-full bg-slate-100">
-                          <Image src={msg.listing_details.image} alt="listing" fill className="object-cover" />
+                          <Image src={msg.listing_details.image} alt="listing" fill sizes="(max-width: 768px) 100vw, 33vw" className="object-cover" />
                           <div className="absolute top-3 left-3 bg-white/90 backdrop-blur-md text-slate-900 text-[9px] font-bold px-2.5 py-1 rounded-full shadow-sm uppercase tracking-wide">
                             {msg.listing_details.type}
                           </div>
@@ -435,15 +484,15 @@ export default function MessagePage() {
 
                     {/* FILE ATTACHMENT MESSAGE */}
                     {msg.type === 'file' && msg.file_details && (
-                      <div className={`mb-2 flex items-center gap-3 p-3.5 rounded-[20px] ${isMe ? 'bg-blue-600 text-white rounded-br-none shadow-md shadow-blue-500/20' : 'bg-white dark:bg-[#1E293B] text-slate-900 dark:text-white rounded-bl-none shadow-sm border border-slate-100 dark:border-[#2A3441]'}`}>
-                        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shadow-sm ${isMe ? 'bg-white/20 text-white' : 'bg-blue-50 dark:bg-blue-900/20 text-blue-600'}`}>
+                      <a href={msg.file_details.url || '#'} target="_blank" rel="noopener noreferrer" className={`mb-2 flex items-center gap-3 p-3.5 rounded-[20px] cursor-pointer hover:opacity-90 transition-opacity ${isMe ? 'bg-blue-600 text-white rounded-br-none shadow-md shadow-blue-500/20' : 'bg-white dark:bg-[#1E293B] text-slate-900 dark:text-white rounded-bl-none shadow-sm border border-slate-100 dark:border-[#2A3441]'}`}>
+                        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shadow-sm flex-shrink-0 ${isMe ? 'bg-white/20 text-white' : 'bg-blue-50 dark:bg-blue-900/20 text-blue-600'}`}>
                           <File size={24} />
                         </div>
-                        <div>
+                        <div className="min-w-0">
                           <p className="text-sm font-bold truncate max-w-[180px]">{msg.file_details.name}</p>
-                          <p className={`text-[11px] font-medium mt-0.5 ${isMe ? 'text-blue-100' : 'text-slate-500'}`}>{msg.file_details.size} • PDF</p>
+                          <p className={`text-[11px] font-medium mt-0.5 ${isMe ? 'text-blue-100' : 'text-slate-500'}`}>{msg.file_details.size} • {msg.file_details.type?.split('/')[1]?.toUpperCase() || 'FILE'}</p>
                         </div>
-                      </div>
+                      </a>
                     )}
 
                     {/* TEXT MESSAGE */}
@@ -474,8 +523,14 @@ export default function MessagePage() {
                 onSubmit={handleSendMessage}
                 className="flex items-center gap-2 bg-slate-50 dark:bg-[#131B2C] p-2 rounded-[32px] border border-slate-200 dark:border-[#1E293B] focus-within:ring-4 focus-within:ring-blue-500/10 focus-within:border-blue-400 transition-all shadow-sm"
               >
-                <button type="button" onClick={handleFileAttachment} className="w-10 h-10 flex items-center justify-center text-slate-400 hover:text-blue-600 hover:bg-white dark:hover:bg-[#1E293B] rounded-full transition-all flex-shrink-0 cursor-pointer shadow-sm ml-1">
-                  <Paperclip size={20} className="drop-shadow-sm" />
+                <input 
+                  type="file" 
+                  ref={fileInputRef} 
+                  className="hidden" 
+                  onChange={handleFileUpload} 
+                />
+                <button type="button" onClick={handleFileAttachment} disabled={isUploading} className="w-10 h-10 flex items-center justify-center text-slate-400 hover:text-blue-600 hover:bg-white dark:hover:bg-[#1E293B] rounded-full transition-all flex-shrink-0 cursor-pointer shadow-sm ml-1 disabled:opacity-50">
+                  {isUploading ? <Loader2 size={20} className="animate-spin text-blue-500" /> : <Paperclip size={20} className="drop-shadow-sm" />}
                 </button>
                 
                 <input 
@@ -485,10 +540,6 @@ export default function MessagePage() {
                   placeholder="Type your message..." 
                   className="flex-1 bg-transparent px-2 py-2 text-[15px] font-medium text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none"
                 />
-                
-                <button type="button" className="w-10 h-10 flex items-center justify-center text-slate-400 hover:text-amber-500 transition-colors flex-shrink-0 hidden sm:flex">
-                  <Smile size={22} />
-                </button>
                 
                 <button 
                   type="submit" 

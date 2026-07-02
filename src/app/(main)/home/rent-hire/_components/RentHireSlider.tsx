@@ -54,7 +54,7 @@ const RentHireSlider = () => {
 
   return (
     <div className="relative w-full group select-none">
-      <div className="relative h-64 overflow-hidden rounded-[32px] border border-slate-100 dark:border-slate-800 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_12px_40px_rgb(0,0,0,0.08)] bg-white dark:bg-[#0A0E1A] transition-all duration-300">
+      <div className="relative h-52 overflow-hidden rounded-[32px] border border-slate-100 dark:border-slate-800 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_12px_40px_rgb(0,0,0,0.08)] bg-white dark:bg-[#0A0E1A] transition-all duration-300">
 
         <button
           onClick={handlePrev}

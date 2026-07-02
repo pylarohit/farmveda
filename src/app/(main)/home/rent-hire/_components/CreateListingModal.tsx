@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { X, Loader2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useUserData } from "@/context/UserDataProvider";
@@ -10,9 +10,10 @@ interface CreateListingModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
+  editingListing?: any;
 }
 
-export function CreateListingModal({ isOpen, onClose, onSuccess }: CreateListingModalProps) {
+export function CreateListingModal({ isOpen, onClose, onSuccess, editingListing }: CreateListingModalProps) {
   const { user } = useUserData();
   const supabase = createClient();
   const [loading, setLoading] = useState(false);
@@ -25,6 +26,30 @@ export function CreateListingModal({ isOpen, onClose, onSuccess }: CreateListing
     unit: "/ hr",
     location: ""
   });
+
+  // Re-initialize state when modal opens or editingListing changes
+  useEffect(() => {
+    if (isOpen) {
+      if (editingListing) {
+        setFormData({
+          type: editingListing.type || "rent",
+          title: editingListing.title || "",
+          price: editingListing.price ? String(editingListing.price) : "",
+          unit: editingListing.unit || "/ hr",
+          location: editingListing.location || ""
+        });
+      } else {
+        setFormData({
+          type: "rent",
+          title: "",
+          price: "",
+          unit: "/ hr",
+          location: ""
+        });
+      }
+      setImageFile(null);
+    }
+  }, [isOpen, editingListing]);
 
   if (!isOpen) return null;
 
@@ -67,7 +92,7 @@ export function CreateListingModal({ isOpen, onClose, onSuccess }: CreateListing
         imageUrl = publicUrl;
       }
 
-      const { error } = await supabase.from("rent_listings").insert({
+      const payload = {
         user_id: user.id,
         title: formData.title,
         type: formData.type,
@@ -75,18 +100,35 @@ export function CreateListingModal({ isOpen, onClose, onSuccess }: CreateListing
         unit: formData.unit,
         location: formData.location,
         image: imageUrl,
-      });
+      };
+
+      let error;
+      if (editingListing) {
+        // Only update image if a new one was uploaded, otherwise keep existing
+        if (!imageFile) delete payload.image;
+        
+        const { error: updateError } = await supabase
+          .from("rent_listings")
+          .update(payload)
+          .eq("id", editingListing.id);
+        error = updateError;
+      } else {
+        const { error: insertError } = await supabase
+          .from("rent_listings")
+          .insert(payload);
+        error = insertError;
+      }
 
       if (error) {
         console.error("Supabase error:", error);
         throw error;
       }
 
-      toast.success("Listing created successfully!");
+      toast.success(editingListing ? "Listing updated successfully!" : "Listing created successfully!");
       onSuccess();
     } catch (err) {
       console.error(err);
-      toast.error("Failed to create listing. Please try again.");
+      toast.error(`Failed to ${editingListing ? 'update' : 'create'} listing. Please try again.`);
     } finally {
       setLoading(false);
     }

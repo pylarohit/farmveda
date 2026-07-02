@@ -1,6 +1,7 @@
 "use client";
 import { createContext, useContext, useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { toast } from "react-hot-toast";
 
 interface DBUser {
   id: number;
@@ -49,6 +50,9 @@ interface UserDataContextType {
   isNewUser: boolean;
   isNewMentor: boolean;
   ensureUserInDB: () => Promise<void>;
+  unreadMessages: number;
+  setUnreadMessages: React.Dispatch<React.SetStateAction<number>>;
+  onlineUsers: Set<string>;
 }
 
 const UserDataContext = createContext<UserDataContextType | undefined>(
@@ -62,10 +66,56 @@ export function UserDataProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState<boolean>(false);
   const [isNewUser, setIsNewUser] = useState<boolean>(false);
   const [isNewMentor, setIsNewMentor] = useState<boolean>(false);
+  const [unreadMessages, setUnreadMessages] = useState<number>(0);
+  const [onlineUsers, setOnlineUsers] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     ensureUserInDB();
   }, []);
+
+  useEffect(() => {
+    if (!user) return;
+    
+    // Global message listener
+    const messageChannel = supabase
+      .channel('global_messages')
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'messages', filter: `receiver_id=eq.${user.id}` },
+        (payload) => {
+          if (!window.location.pathname.includes('/home/message')) {
+            setUnreadMessages(prev => prev + 1);
+            toast.success('New message received!');
+          }
+        }
+      )
+      .subscribe();
+
+    // Presence listener
+    const presenceChannel = supabase.channel('global_presence', {
+      config: { presence: { key: String(user.id) } },
+    });
+
+    presenceChannel
+      .on('presence', { event: 'sync' }, () => {
+        const state = presenceChannel.presenceState();
+        const onlineUserIds = new Set<string>();
+        Object.keys(state).forEach(key => {
+          onlineUserIds.add(key);
+        });
+        setOnlineUsers(onlineUserIds);
+      })
+      .subscribe(async (status) => {
+        if (status === 'SUBSCRIBED') {
+          await presenceChannel.track({ online_at: new Date().toISOString() });
+        }
+      });
+
+    return () => {
+      supabase.removeChannel(messageChannel);
+      supabase.removeChannel(presenceChannel);
+    };
+  }, [user]);
 
   const ensureUserInDB = async () => {
     setLoading(true);
@@ -206,6 +256,9 @@ export function UserDataProvider({ children }: { children: React.ReactNode }) {
         isNewMentor,
         mentor,
         setMentor,
+        unreadMessages,
+        setUnreadMessages,
+        onlineUsers,
       }}
     >
       {children}

@@ -36,6 +36,7 @@ import {
   LuFolder,
   LuLayers,
   LuShoppingCart,
+  LuCalculator,
 } from "react-icons/lu";
 import {
   Popover,
@@ -72,7 +73,7 @@ import { LuChartNoAxesColumn } from "react-icons/lu";
 import { Highlighter } from "@/components/ui/highlighter";
 
 export function AppSidebar() {
-  const { user, loading } = useUserData();
+  const { user, loading, unreadMessages } = useUserData();
   const supabase = createClient();
   const router = useRouter();
   const [signoutLoading, setSignoutLoading] = useState(false);
@@ -236,11 +237,16 @@ export function AppSidebar() {
                   : "hover:bg-white/10 hover:scale-105"
                 }`}
             >
-              <Link href="/home/message" className="w-full">
+              <Link href="/home/message" className="w-full flex items-center justify-between">
                 <p className="flex items-center gap-3 font-medium font-inter text-base text-white tracking-wide">
                   <LuMessageSquare className="text-xl" />
                   Messages
                 </p>
+                {unreadMessages > 0 && (
+                  <span className="bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-sm animate-pulse">
+                    {unreadMessages}
+                  </span>
+                )}
               </Link>
             </SidebarMenuItem>
 
@@ -320,6 +326,22 @@ export function AppSidebar() {
               </div>
             </div>
       
+
+            {/* Budget Planner */}
+            <SidebarMenuItem
+              className={`flex cursor-pointer hover:scale-105 duration-200 ease-in-out rounded px-3 py-1  ${pathname === "/home/loans"
+                ? "bg-blue-600 scale-105 hover:bg-white/10"
+                : "hover:bg-white/10 hover:scale-105"
+                }`}
+            >
+              <Link href="/home/budget-planner" className="w-full">
+                <p className="flex items-center gap-3 font-medium font-inter text-base text-white tracking-wide">
+                  <LuCalculator className="text-xl" />
+                  Budget Planner
+                </p>
+              </Link>
+            </SidebarMenuItem>
+
             {/* Loans */}
             <SidebarMenuItem
               className={`flex cursor-pointer hover:scale-105 duration-200 ease-in-out rounded px-3 py-1  ${pathname === "/home/loans"
