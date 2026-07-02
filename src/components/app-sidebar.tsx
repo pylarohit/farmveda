@@ -231,12 +231,12 @@ export function AppSidebar() {
 
             {/* Messages */}
             <SidebarMenuItem
-              className={`flex cursor-pointer hover:scale-105 duration-200 ease-in-out rounded px-3 py-1 ${pathname === "/home/messages"
+              className={`flex cursor-pointer hover:scale-105 duration-200 ease-in-out rounded px-3 py-1 ${pathname === "/home/message"
                   ? "bg-blue-600 scale-105 hover:bg-white/10"
                   : "hover:bg-white/10 hover:scale-105"
                 }`}
             >
-              <Link href="/home/messages" className="w-full">
+              <Link href="/home/message" className="w-full">
                 <p className="flex items-center gap-3 font-medium font-inter text-base text-white tracking-wide">
                   <LuMessageSquare className="text-xl" />
                   Messages
