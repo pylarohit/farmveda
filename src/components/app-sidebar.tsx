@@ -130,7 +130,7 @@ export function AppSidebar() {
       loadFarms();
     };
     window.addEventListener('farmAdded', handleFarmAdded);
-    
+
     return () => {
       window.removeEventListener('farmAdded', handleFarmAdded);
     };
@@ -228,8 +228,8 @@ export function AppSidebar() {
             {/* Messages */}
             <SidebarMenuItem
               className={`flex cursor-pointer hover:scale-105 duration-200 ease-in-out rounded px-3 py-1 ${pathname === "/home/message"
-                  ? "bg-blue-600 scale-105 hover:bg-white/10"
-                  : "hover:bg-white/10 hover:scale-105"
+                ? "bg-blue-600 scale-105 hover:bg-white/10"
+                : "hover:bg-white/10 hover:scale-105"
                 }`}
             >
               <Link href="/home/message" className="w-full flex items-center justify-between">
@@ -320,7 +320,7 @@ export function AppSidebar() {
                 <div className="h-[1px] bg-slate-800/80 flex-1" />
               </div>
             </div>
-      
+
 
             {/* Budget Planner */}
             <SidebarMenuItem
@@ -355,8 +355,8 @@ export function AppSidebar() {
             {/* Rent & Hire */}
             <SidebarMenuItem
               className={`flex cursor-pointer hover:scale-105 duration-200 ease-in-out rounded px-3 py-1 ${pathname === "/home/rent-hire"
-                  ? "bg-blue-600 scale-105 hover:bg-white/10"
-                  : "hover:bg-white/10 hover:scale-105"
+                ? "bg-blue-600 scale-105 hover:bg-white/10"
+                : "hover:bg-white/10 hover:scale-105"
                 }`}
             >
               <Link href="/home/rent-hire" className="w-full">
@@ -370,8 +370,8 @@ export function AppSidebar() {
             {/* Sell Crops */}
             <SidebarMenuItem
               className={`flex cursor-pointer hover:scale-105 duration-200 ease-in-out rounded px-3 py-1 ${pathname === "/home/sell-crops"
-                  ? "bg-blue-600 scale-105 hover:bg-white/10"
-                  : "hover:bg-white/10 hover:scale-105"
+                ? "bg-blue-600 scale-105 hover:bg-white/10"
+                : "hover:bg-white/10 hover:scale-105"
                 }`}
             >
               <Link href="/home/sell-crops" className="w-full">
