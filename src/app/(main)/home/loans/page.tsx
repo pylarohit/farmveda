@@ -62,9 +62,11 @@ export default function SchemesPage() {
     setVisibleCount(9);
   }, [search, selectedTypes, selectedCrops, selectedProviders, showBookmarksOnly, sortBy]);
 
-  // Fetch live schemes and sync with Supabase cache
+  // Load data from Supabase cache, only fetch from SerpAPI if cache is empty
   useEffect(() => {
     async function loadData() {
+      let cacheFound = false;
+
       // 1. First, load existing cached schemes from Supabase immediately if any exist
       try {
         const { data, error } = await supabase
@@ -92,66 +94,70 @@ export default function SchemesPage() {
           }));
           setSchemes(mapped);
           setApiLoading(false); // Stop loading animation immediately as we have cached data
+          cacheFound = true;
         }
       } catch (dbErr) {
         console.warn("Could not load from Supabase cache (table might not exist yet):", dbErr);
       }
 
-      // 2. Fetch fresh new search data in the background
-      try {
-        const res = await fetch("/api/schemes");
-        if (!res.ok) {
-          throw new Error(`Server returned code ${res.status}`);
-        }
-        const freshData = await res.json();
-        if (freshData && Array.isArray(freshData) && freshData.length > 0) {
-          setSchemes(freshData);
-          setApiError(null);
-          setIsUsingFallback(false);
-
-          // 3. Write/sync new data to Supabase cached_schemes table
-          try {
-            // Delete old cached records
-            await supabase.from("cached_schemes").delete().neq("id", "dummy");
-            
-            // Map camelCase to snake_case for DB columns
-            const rowsToInsert = freshData.map((s: any) => ({
-              id: s.id,
-              title: s.title,
-              provider: s.provider,
-              type: s.type,
-              publish_date: s.publishDate,
-              eligibility: s.eligibility,
-              crops: s.crops,
-              interest_rate: s.interestRate || null,
-              subsidy_rate: s.subsidyRate || null,
-              benefit_amount: s.benefitAmount || null,
-              description: s.description,
-              details: s.details,
-              documents: s.documents,
-              apply_link: s.applyLink,
-              color: s.color,
-              updated_at: new Date().toISOString()
-            }));
-
-            const { error: insertErr } = await supabase.from("cached_schemes").insert(rowsToInsert);
-            if (insertErr) {
-              console.warn("Failed to write to Supabase cache:", insertErr);
-            }
-          } catch (cacheErr) {
-            console.warn("Failed to update cache in Supabase:", cacheErr);
+      // 2. Fetch fresh new search data in the background ONLY if cache was empty
+      if (!cacheFound) {
+        try {
+          setApiLoading(true);
+          const res = await fetch("/api/schemes");
+          if (!res.ok) {
+            throw new Error(`Server returned code ${res.status}`);
           }
-        } else if (freshData && freshData.error) {
-          throw new Error(freshData.error);
-        } else {
-          throw new Error("Invalid response format");
+          const freshData = await res.json();
+          if (freshData && Array.isArray(freshData) && freshData.length > 0) {
+            setSchemes(freshData);
+            setApiError(null);
+            setIsUsingFallback(false);
+
+            // 3. Write/sync new data to Supabase cached_schemes table
+            try {
+              // Delete old cached records
+              await supabase.from("cached_schemes").delete().neq("id", "dummy");
+              
+              // Map camelCase to snake_case for DB columns
+              const rowsToInsert = freshData.map((s: any) => ({
+                id: s.id,
+                title: s.title,
+                provider: s.provider,
+                type: s.type,
+                publish_date: s.publishDate,
+                eligibility: s.eligibility,
+                crops: s.crops,
+                interest_rate: s.interestRate || null,
+                subsidy_rate: s.subsidyRate || null,
+                benefit_amount: s.benefitAmount || null,
+                description: s.description,
+                details: s.details,
+                documents: s.documents,
+                apply_link: s.applyLink,
+                color: s.color,
+                updated_at: new Date().toISOString()
+              }));
+
+              const { error: insertErr } = await supabase.from("cached_schemes").insert(rowsToInsert);
+              if (insertErr) {
+                console.warn("Failed to write to Supabase cache:", insertErr);
+              }
+            } catch (cacheErr) {
+              console.warn("Failed to update cache in Supabase:", cacheErr);
+            }
+          } else if (freshData && freshData.error) {
+            throw new Error(freshData.error);
+          } else {
+            throw new Error("Invalid response format");
+          }
+        } catch (err: any) {
+          console.error("Failed to load fresh schemes:", err);
+          setApiError(err.message || "Failed to fetch live search data");
+          toast.error("Failed to fetch fresh live search data.");
+        } finally {
+          setApiLoading(false);
         }
-      } catch (err: any) {
-        console.error("Failed to load fresh schemes:", err);
-        setApiError(err.message || "Failed to fetch live search data");
-        toast.error("Failed to fetch fresh live search data.");
-      } finally {
-        setApiLoading(false);
       }
     }
 
@@ -169,6 +175,61 @@ export default function SchemesPage() {
       }
     }
   }, []);
+
+  // Manually trigger a fresh SerpAPI + Gemini fetch and store it to Supabase
+  const handleSyncFreshData = async () => {
+    try {
+      setApiLoading(true);
+      setApiError(null);
+      toast.loading("Syncing fresh search data from Google...", { id: "sync-toast" });
+      
+      const res = await fetch("/api/schemes");
+      if (!res.ok) {
+        throw new Error(`Server returned code ${res.status}`);
+      }
+      const freshData = await res.json();
+      
+      if (freshData && Array.isArray(freshData) && freshData.length > 0) {
+        setSchemes(freshData);
+        setIsUsingFallback(false);
+
+        // Update database cache
+        try {
+          await supabase.from("cached_schemes").delete().neq("id", "dummy");
+          const rowsToInsert = freshData.map((s: any) => ({
+            id: s.id,
+            title: s.title,
+            provider: s.provider,
+            type: s.type,
+            publish_date: s.publishDate,
+            eligibility: s.eligibility,
+            crops: s.crops,
+            interest_rate: s.interestRate || null,
+            subsidy_rate: s.subsidyRate || null,
+            benefit_amount: s.benefitAmount || null,
+            description: s.description,
+            details: s.details,
+            documents: s.documents,
+            apply_link: s.applyLink,
+            color: s.color,
+            updated_at: new Date().toISOString()
+          }));
+          await supabase.from("cached_schemes").insert(rowsToInsert);
+          toast.success("Data synced successfully!", { id: "sync-toast" });
+        } catch (cacheErr) {
+          console.warn("Failed to update cache:", cacheErr);
+          toast.success("Loaded fresh data, but failed to save cache.", { id: "sync-toast" });
+        }
+      } else {
+        throw new Error("Invalid response format");
+      }
+    } catch (err: any) {
+      console.error("Failed to sync fresh schemes:", err);
+      toast.error(err.message || "Failed to sync fresh search data.", { id: "sync-toast" });
+    } finally {
+      setApiLoading(false);
+    }
+  };
 
   const handleToggleBookmark = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -412,11 +473,20 @@ export default function SchemesPage() {
                   </span>
                 ) : (
                   <span className="bg-emerald-50 text-emerald-600 border border-emerald-250 px-2 py-0.5 rounded-full text-[10px] font-black uppercase flex items-center gap-1.5">
-                    <Sparkles className="h-3 w-3 text-emerald-600 animate-pulse" />
-                    Live Google Search Data
+                    <Sparkles className="h-3 w-3 text-emerald-600" />
+                    Cached Search Data
                   </span>
                 )
               )}
+
+              {/* Sync button */}
+              <button
+                onClick={handleSyncFreshData}
+                disabled={apiLoading}
+                className="flex items-center gap-1 text-[10px] uppercase font-black text-blue-600 hover:text-blue-700 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-full cursor-pointer transition-colors disabled:opacity-50"
+              >
+                🔄 Sync Fresh Data
+              </button>
             </div>
 
             <div className="flex items-center gap-2 text-xs font-bold text-slate-650 ml-auto sm:ml-0">
