@@ -324,12 +324,12 @@ export function AppSidebar() {
 
             {/* Budget Planner */}
             <SidebarMenuItem
-              className={`flex cursor-pointer hover:scale-105 duration-200 ease-in-out rounded px-3 py-1  ${pathname === "/home/loans"
+              className={`flex cursor-pointer hover:scale-105 duration-200 ease-in-out rounded px-3 py-1  ${pathname === "/home/budget"
                 ? "bg-blue-600 scale-105 hover:bg-white/10"
                 : "hover:bg-white/10 hover:scale-105"
                 }`}
             >
-              <Link href="/home/budget-planner" className="w-full">
+              <Link href="/home/budget" className="w-full">
                 <p className="flex items-center gap-3 font-medium font-inter text-base text-white tracking-wide">
                   <LuCalculator className="text-xl" />
                   Budget Planner
