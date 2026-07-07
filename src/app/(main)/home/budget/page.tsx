@@ -684,11 +684,9 @@ export default function BudgetPage() {
         <div>
           <h1 className="text-3xl font-extrabold tracking-tight text-slate-900 font-sora flex items-center gap-2.5">
             Farm Budget & Expense Tracker
-            <Sparkles className="h-6 w-6 text-emerald-500 animate-pulse" />
+            
           </h1>
-          <p className="text-slate-500 text-sm mt-1">
-            Track your farming costs (seeds, labor, water) and crop sales to see your exact profits.
-          </p>
+          
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <button 
