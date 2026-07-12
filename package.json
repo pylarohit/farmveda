@@ -10,6 +10,9 @@
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
+    "@langchain/community": "^1.1.29",
+    "@langchain/core": "^1.2.2",
+    "@langchain/google-genai": "^2.2.0",
     "@radix-ui/react-alert-dialog": "^1.1.17",
     "@radix-ui/react-collapsible": "^1.1.14",
     "@radix-ui/react-popover": "^1.1.17",
@@ -23,6 +26,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "framer-motion": "^12.40.0",
+    "langchain": "^1.5.3",
     "lucide-react": "^1.21.0",
     "motion": "^12.40.0",
     "next": "16.2.9",
