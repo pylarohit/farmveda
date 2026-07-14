@@ -15,7 +15,7 @@ import {
   FileText, 
   RefreshCw, 
   Info,
-  Calendar,
+  Calendar as CalendarIcon,
   AlertTriangle,
   Sparkles,
   Download,
@@ -24,6 +24,10 @@ import {
   PiggyBank
 } from "lucide-react";
 import { toast } from "react-hot-toast";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { format } from "date-fns";
+import { cn } from "@/lib/utils";
 
 // Simplified agricultural categories for farmers
 const EXPENSE_CATEGORIES = [
@@ -103,13 +107,13 @@ export default function BudgetPage() {
   const [newCategory, setNewCategory] = useState(EXPENSE_CATEGORIES[0]);
   const [newFarmId, setNewFarmId] = useState("general");
   const [newCropOverride, setNewCropOverride] = useState("Paddy"); // Only used if farmId is "general"
-  const [newDate, setNewDate] = useState(() => new Date().toISOString().split("T")[0]);
+  const [newDate, setNewDate] = useState<Date | undefined>(new Date());
   const [newDescription, setNewDescription] = useState("");
 
   // Peer Loan Form States
   const [isPeerDebt, setIsPeerDebt] = useState(false);
   const [peerName, setPeerName] = useState("");
-  const [dueDate, setDueDate] = useState("");
+  const [dueDate, setDueDate] = useState<Date | undefined>();
 
   // Graph hover segment
   const [hoveredSlice, setHoveredSlice] = useState<number | null>(null);
@@ -210,11 +214,11 @@ export default function BudgetPage() {
         : newCategory,
       farm_id: newFarmId === "general" ? null : newFarmId,
       crop: resolvedCrop,
-      date: newDate,
+      date: newDate ? format(newDate, "yyyy-MM-dd") : new Date().toISOString().split("T")[0],
       description: newDescription || `${newType === "income" ? "Earnings" : "Expense"} for ${resolvedCrop}`,
       is_peer_debt: isPeerDebt,
       peer_name: isPeerDebt ? peerName : null,
-      due_date: isPeerDebt ? (dueDate || null) : null,
+      due_date: isPeerDebt && dueDate ? format(dueDate, "yyyy-MM-dd") : null,
       debt_status: isPeerDebt ? "pending" : null
     };
 
@@ -554,7 +558,8 @@ export default function BudgetPage() {
     }
     setIsPeerDebt(false);
     setPeerName("");
-    setDueDate("");
+    setDueDate(undefined);
+    setNewDate(new Date());
     setIsAddOpen(true);
   };
 
@@ -1474,13 +1479,28 @@ export default function BudgetPage() {
                 {/* Date */}
                 <div>
                   <label className="text-sm font-bold uppercase tracking-wider text-slate-500 block mb-2">Date</label>
-                  <input 
-                    type="date"
-                    required
-                    value={newDate}
-                    onChange={(e) => setNewDate(e.target.value)}
-                    className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl text-base focus:outline-none focus:ring-2 focus:ring-blue-500 font-bold text-slate-700"
-                  />
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <button
+                        type="button"
+                        className={cn(
+                          "w-full px-4 py-3 border-2 border-slate-200 rounded-xl text-base focus:outline-none focus:ring-2 focus:ring-blue-500 font-bold text-slate-700 flex items-center justify-between bg-white",
+                          !newDate && "text-slate-400"
+                        )}
+                      >
+                        {newDate ? format(newDate, "PPP") : <span>Pick a date</span>}
+                        <CalendarIcon className="h-5 w-5 opacity-50" />
+                      </button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={newDate}
+                        onSelect={setNewDate}
+                        className="rounded-2xl"
+                      />
+                    </PopoverContent>
+                  </Popover>
                 </div>
               </div>
 
@@ -1518,13 +1538,28 @@ export default function BudgetPage() {
                     <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block mb-1.5">
                       When will you pay back / collect?
                     </label>
-                    <input 
-                      type="date"
-                      required
-                      value={dueDate}
-                      onChange={(e) => setDueDate(e.target.value)}
-                      className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm font-extrabold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <button
+                          type="button"
+                          className={cn(
+                            "w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm font-extrabold focus:outline-none focus:ring-2 focus:ring-blue-500 flex items-center justify-between bg-white",
+                            dueDate ? "text-slate-800" : "text-slate-400"
+                          )}
+                        >
+                          {dueDate ? format(dueDate, "PPP") : <span>Pick a due date</span>}
+                          <CalendarIcon className="h-4 w-4 opacity-50" />
+                        </button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={dueDate}
+                          onSelect={setDueDate}
+                          className="rounded-2xl"
+                        />
+                      </PopoverContent>
+                    </Popover>
                   </div>
                 </div>
               )}
