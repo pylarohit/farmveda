@@ -85,6 +85,7 @@ export default function RoadmapPage() {
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const [selectedStep, setSelectedStep] = useState<(Step & { index: number }) | null>(null);
   const [initialLoading, setInitialLoading] = useState(true);
+  const [sidebarTab, setSidebarTab] = useState<"upcoming" | "history">("upcoming");
 
   const supabase = createClient();
 
@@ -260,7 +261,7 @@ export default function RoadmapPage() {
 
   if (!roadmap) {
     return (
-      <div className="min-h-[80vh] flex flex-col p-6 lg:p-12 relative font-sans bg-transparent overflow-hidden">
+      <div className="min-h-full flex flex-col p-6 lg:p-12 relative font-sans bg-transparent overflow-hidden">
         <DotPattern
           className={cn("[mask-image:radial-gradient(600px_circle_at_center,white,transparent)]")}
           glow={true}
@@ -365,7 +366,7 @@ export default function RoadmapPage() {
   };
 
   return (
-    <div className="flex flex-col xl:flex-row min-h-screen bg-transparent font-sans gap-8">
+    <div className="flex flex-col xl:flex-row bg-transparent font-sans h-full w-full">
       <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleFileChange} />
 
       {/* ── Step Detail Popup ─────────────────────────────────────────────── */}
@@ -430,7 +431,7 @@ export default function RoadmapPage() {
       )}
 
       {/* ── Main Timeline ────────────────────────────────────────────────────── */}
-      <div className="flex-1 p-8 lg:p-12">
+      <div className="flex-1 overflow-y-auto p-8 lg:p-12">
         <div className="w-full">
           <div className="relative py-4">
 
@@ -653,8 +654,8 @@ export default function RoadmapPage() {
       </div>
 
       {/* ── Right Sidebar ─────────────────────────────────────────────────── */}
-      <div className="w-full xl:w-[400px] flex-shrink-0">
-        <div className="sticky top-8 p-8 xl:p-0 xl:pr-8 xl:pt-8">
+      <div className="hidden xl:flex flex-col w-[380px] flex-shrink-0 border-l border-gray-100 bg-white overflow-y-auto">
+        <div className="p-6 pt-8">
 
           {/* Progress Card */}
           <div className="bg-white p-6 rounded-3xl shadow-[0_4px_20px_rgb(0,0,0,0.03)] border border-gray-100 mb-8">
@@ -682,50 +683,110 @@ export default function RoadmapPage() {
             </div>
           </div>
 
-          {/* Upcoming Tasks */}
+          {/* History / Upcoming Tabs */}
           <div>
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-base font-bold text-[#0F172A]">Upcoming Tasks</h2>
-              <button className="text-xs font-bold text-[#64748B] hover:text-[#0F172A]">View All</button>
+            {/* Tab Buttons */}
+            <div className="flex items-center gap-1 bg-[#F1F5F9] p-1 rounded-2xl mb-5">
+              <button
+                onClick={() => setSidebarTab("upcoming")}
+                className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all duration-200 ${
+                  sidebarTab === "upcoming"
+                    ? "bg-white text-[#0F172A] shadow-sm"
+                    : "text-[#64748B] hover:text-[#0F172A]"
+                }`}
+              >
+                Upcoming
+              </button>
+              <button
+                onClick={() => setSidebarTab("history")}
+                className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all duration-200 ${
+                  sidebarTab === "history"
+                    ? "bg-white text-[#0F172A] shadow-sm"
+                    : "text-[#64748B] hover:text-[#0F172A]"
+                }`}
+              >
+                History
+              </button>
             </div>
 
-            <div className="space-y-4">
-              {roadmap.steps.map((step, idx) => {
-                if (step.status === "completed") return null;
-                const colorClass = cardColors[idx % cardColors.length];
-                const dateStr = step.estimatedDate?.toLocaleDateString('en-US', { weekday: 'short', day: '2-digit', month: '2-digit' });
-
+            {/* Upcoming Tab — shows only the next upcoming task */}
+            {sidebarTab === "upcoming" && (() => {
+              const nextStep = roadmap.steps.find(s => s.status === "upcoming");
+              const nextIdx = roadmap.steps.findIndex(s => s.status === "upcoming");
+              if (!nextStep) {
                 return (
-                  <motion.div
-                    key={idx}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: idx * 0.1 }}
-                    className={`${colorClass} rounded-[24px] p-5 shadow-sm border relative cursor-pointer hover:shadow-md transition-shadow`}
-                    onClick={() => setSelectedStep({ ...step, index: idx })}
-                  >
-                    <div className="flex justify-between items-start mb-3">
-                      <div className="flex items-center gap-2">
-                        <span className="p-1.5 bg-white/60 rounded-lg">
-                          <Target className="w-4 h-4" />
-                        </span>
-                        <span className="text-xs font-bold uppercase tracking-wide">Task</span>
-                      </div>
-                      <span className="text-xs font-bold uppercase">{dateStr}</span>
-                    </div>
-
-                    <p className="text-sm font-medium leading-relaxed mb-4">
-                      {step.title} - {step.description.slice(0, 70)}...
-                    </p>
-
-                    <div className="bg-white/60 px-3 py-1.5 rounded-full w-fit flex items-center gap-1.5">
-                      <CalendarIcon className="w-3.5 h-3.5" />
-                      <span className="text-[10px] font-bold uppercase tracking-wide">{step.duration}</span>
-                    </div>
-                  </motion.div>
+                  <div className="flex flex-col items-center justify-center py-10 text-center gap-2">
+                    <span className="text-3xl">🎉</span>
+                    <p className="text-sm font-bold text-[#16A34A]">All steps completed!</p>
+                    <p className="text-xs text-[#64748B]">You've finished every task on the roadmap.</p>
+                  </div>
                 );
-              })}
-            </div>
+              }
+              const colorClass = cardColors[nextIdx % cardColors.length];
+              const dateStr = nextStep.estimatedDate?.toLocaleDateString('en-US', { weekday: 'short', day: '2-digit', month: '2-digit' });
+              return (
+                <motion.div
+                  key={nextIdx}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className={`${colorClass} rounded-[24px] p-5 shadow-sm border relative cursor-pointer hover:shadow-md transition-shadow`}
+                  onClick={() => setSelectedStep({ ...nextStep, index: nextIdx })}
+                >
+                  <div className="flex justify-between items-start mb-3">
+                    <div className="flex items-center gap-2">
+                      <span className="p-1.5 bg-white/60 rounded-lg">
+                        <Target className="w-4 h-4" />
+                      </span>
+                      <span className="text-xs font-bold uppercase tracking-wide">Next Task</span>
+                    </div>
+                    <span className="text-xs font-bold uppercase">{dateStr}</span>
+                  </div>
+                  <p className="text-sm font-medium leading-relaxed mb-4">
+                    {nextStep.title} — {nextStep.description.slice(0, 80)}...
+                  </p>
+                  <div className="bg-white/60 px-3 py-1.5 rounded-full w-fit flex items-center gap-1.5">
+                    <CalendarIcon className="w-3.5 h-3.5" />
+                    <span className="text-[10px] font-bold uppercase tracking-wide">{nextStep.duration}</span>
+                  </div>
+                </motion.div>
+              );
+            })()}
+
+            {/* History Tab — shows all completed tasks */}
+            {sidebarTab === "history" && (
+              <div className="space-y-3">
+                {completedSteps.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-10 text-center gap-2">
+                    <span className="text-3xl">📋</span>
+                    <p className="text-sm font-bold text-[#64748B]">No completed tasks yet</p>
+                    <p className="text-xs text-[#94A3B8]">Mark steps as done to see them here.</p>
+                  </div>
+                ) : (
+                  roadmap.steps.map((step, idx) => {
+                    if (step.status !== "completed") return null;
+                    const dateStr = step.estimatedDate?.toLocaleDateString('en-US', { weekday: 'short', day: '2-digit', month: '2-digit' });
+                    return (
+                      <motion.div
+                        key={idx}
+                        initial={{ opacity: 0, y: 8 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: idx * 0.05 }}
+                        className="bg-[#F0FDF4] border border-[#BBF7D0] rounded-[20px] p-4 flex items-start gap-3 cursor-pointer hover:shadow-md transition-shadow"
+                        onClick={() => setSelectedStep({ ...step, index: idx })}
+                      >
+                        <div className="w-8 h-8 rounded-xl bg-[#22C55E]/15 flex items-center justify-center flex-shrink-0 text-base">
+                          ✅
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-bold text-[#0F172A] leading-snug truncate">{step.title}</p>
+                          <p className="text-[11px] text-[#16A34A] font-semibold mt-0.5">{dateStr}</p>
+                        </div>
+                      </motion.div>
+                    );
+                  })
+                )}
+              </div>
+            )}
           </div>
 
         </div>

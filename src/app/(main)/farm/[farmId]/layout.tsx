@@ -47,8 +47,7 @@ export default function FarmLayout({ children }: { children: ReactNode }) {
                         </div>
                     </header>
 
-                    {/* Main Content Area */}
-                    <main className="flex-1 px-6 pb-6 pt-2 lg:px-8 lg:pb-8 lg:pt-4 w-full">
+                    <main className="flex-1 flex flex-col min-h-0 w-full overflow-hidden">
                         {children}
                     </main>
                 </div>

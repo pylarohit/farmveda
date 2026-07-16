@@ -365,7 +365,7 @@ export default function AIAssistantPage() {
   };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-125px)] w-full gap-2 max-w-6xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500 overflow-hidden">
+    <div className="flex flex-col h-full w-full px-6 pt-4 pb-0 gap-2 max-w-6xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500 overflow-hidden">
 
       {/* Dynamic Keyframes injected locally */}
       <style>{`

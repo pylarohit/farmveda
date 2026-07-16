@@ -6,7 +6,7 @@ export default function FarmHomePage() {
   const farmId = params.farmId as string;
 
   return (
-    <div className="flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+    <div className="flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500 p-6 lg:p-8">
       <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-8">
         <h1 className="text-3xl font-sora font-bold text-slate-900 mb-2">Farm Home</h1>
         <p className="text-slate-500 font-inter">Welcome to the dashboard for farm ID: {farmId}. Use the sidebar to navigate tools and analytics for this farm.</p>
