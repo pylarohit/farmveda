@@ -28,12 +28,22 @@ import {
   ShoppingBag,
   Loader2,
   ExternalLink
-} from "lucide-react";
+} from "lucide-react"; import { IKContext, IKUpload } from "imagekitio-react";
 
-
-
-
-
+const publicKey = process.env.NEXT_PUBLIC_IMAGEKIT_PUBLIC_KEY;
+const urlEndpoint = process.env.NEXT_PUBLIC_IMAGEKIT_URL_ENDPOINT;
+const authenticator = async () => {
+  try {
+    const response = await fetch('/api/imagekit/auth');
+    if (!response.ok) {
+      throw new Error(`Request failed with status ${response.status}`);
+    }
+    const data = await response.json();
+    return { signature: data.signature, expire: data.expire, token: data.token };
+  } catch (error: any) {
+    throw new Error(`Authentication request failed: ${error.message}`);
+  }
+};
 export default function DiseaseDetectionPage() {
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -237,6 +247,26 @@ export default function DiseaseDetectionPage() {
     }
   };
 
+  const handleImageKitSuccess = async (res: any) => {
+    setPreviewUrl(res.url);
+    setScanState("scanning");
+    setErrorMsg("");
+    setResult(null);
+    setActiveStep(1);
+
+    try {
+      const imageRes = await fetch(res.url);
+      const blob = await imageRes.blob();
+      const selectedFile = new File([blob], res.name || "uploaded.jpg", { type: blob.type });
+      setFile(selectedFile);
+      processImage(selectedFile);
+    } catch (err) {
+      console.error("Image fetch error", err);
+      setErrorMsg("Failed to prepare ImageKit upload for processing.");
+      setScanState("error");
+    }
+  };
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const selectedFile = e.target.files[0];
@@ -303,9 +333,7 @@ export default function DiseaseDetectionPage() {
       <div className="absolute top-[-20%] left-[-10%] w-[60%] h-[60%] bg-emerald-200/20 blur-[150px] rounded-full pointer-events-none mix-blend-multiply" />
       <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-teal-200/15 blur-[120px] rounded-full pointer-events-none mix-blend-multiply" />
 
-      
-
-      <div className="w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 flex flex-col relative z-10">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex flex-col relative z-10">
         {/* IDLE MODE: Choice between Live Camera & File Upload */}
         {scanState === "idle" && (
           <div className="flex flex-col items-center justify-center animate-in fade-in zoom-in duration-700 w-full">
@@ -313,10 +341,10 @@ export default function DiseaseDetectionPage() {
               <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-emerald-50 border border-emerald-100 text-emerald-700 text-xs font-bold uppercase tracking-wider mb-4 shadow-sm">
                 <Sparkles className="w-4 h-4 text-emerald-600" /> AI Field Diagnostics for Farmers
               </span>
-              <h2 className="text-4xl md:text-5xl font-black tracking-tighter bg-gradient-to-r from-emerald-700 via-teal-600 to-emerald-800 text-transparent bg-clip-text mb-4">
+              <h2 className="text-2xl sm:text-3xl font-black tracking-tight bg-gradient-to-r from-emerald-700 via-teal-600 to-emerald-800 text-transparent bg-clip-text mb-3">
                 Diagnose Crop Disease Instantly
               </h2>
-              <p className="text-slate-600 text-lg max-w-2xl mx-auto font-medium">
+              <p className="text-slate-600 text-sm sm:text-base max-w-xl mx-auto font-medium">
                 Find out what sickness your plant has and how to cure it. Upload a photo or take one now.
               </p>
             </div>
@@ -345,22 +373,21 @@ export default function DiseaseDetectionPage() {
                 </button>
 
                 {/* Option B: Upload Photo */}
-                <button
-                  type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  className="bg-slate-100 hover:bg-slate-200 text-slate-800 px-6 py-4 rounded-2xl font-black text-base flex items-center justify-center gap-2.5 transition-all border border-slate-200 hover:scale-[1.02]"
-                >
-                  <UploadCloud className="h-5 w-5" /> Upload from Device
-                </button>
+                <div className="relative bg-slate-100 hover:bg-slate-200 text-slate-800 px-6 py-4 rounded-2xl font-black text-base flex items-center justify-center gap-2.5 transition-all border border-slate-200 hover:scale-[1.02] cursor-pointer overflow-hidden text-center">
+                  <IKContext
+                    publicKey={publicKey}
+                    urlEndpoint={urlEndpoint}
+                    authenticator={authenticator}
+                  >
+                    <IKUpload
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-50"
+                      onSuccess={(res: any) => { handleImageKitSuccess(res); }}
+                      onError={(err: any) => { setErrorMsg("ImageKit Upload failed: " + err.message); setScanState("error"); }}
+                    />
+                  </IKContext>
+                  <UploadCloud className="h-5 w-5" /> Upload via ImageKit
+                </div>
               </div>
-
-              <input
-                type="file"
-                ref={fileInputRef}
-                onChange={handleFileChange}
-                className="hidden"
-                accept="image/*"
-              />
             </div>
 
             {/* History Section */}
@@ -540,10 +567,22 @@ export default function DiseaseDetectionPage() {
 
                       <h2 className="text-3xl font-black text-slate-900 tracking-tight mb-3">{result.diseaseName}</h2>
 
-                      
-                      <div className="bg-slate-50 border border-slate-200/60 rounded-xl p-3 flex justify-between items-center text-xs mb-4">
+                      <div className="bg-emerald-50/50 border border-emerald-100/80 rounded-2xl p-4 mb-4">
+                        <h4 className="text-xs font-black text-emerald-800 uppercase tracking-wider mb-1">📢 Simple Explanation:</h4>
+                        <p className="text-slate-700 text-sm font-medium leading-relaxed">
+                          {result.simpleDescription}
+                        </p>
+                      </div>
+
+                      <div className="space-y-3 mb-6">
+                        <div className="bg-slate-50 border border-slate-200/60 rounded-xl p-3 flex justify-between items-center text-xs">
+                          <span className="text-slate-500 font-bold">Estimated Recovery:</span>
+                          <span className="font-black text-slate-800">{result.estimatedRecovery || "N/A"}</span>
+                        </div>
+                        <div className="bg-slate-50 border border-slate-200/60 rounded-xl p-3 flex justify-between items-center text-xs">
                           <span className="text-slate-500 font-bold">Severity:</span>
                           <span className="font-black text-amber-700">{result.severity || "N/A"}</span>
+                        </div>
                       </div>
 
                       <button onClick={resetScan} className="w-full bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-800 px-5 py-3.5 rounded-2xl font-bold flex items-center justify-center gap-2 transition-colors text-sm">
@@ -556,12 +595,12 @@ export default function DiseaseDetectionPage() {
                   <div className="lg:col-span-9 flex flex-col gap-5 w-full">
 
                     {/* What and Why Diagnosis Summary */}
-                    <div className="bg-white/95 border border-slate-200/60 rounded-[28px] p-8 shadow-sm grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div className="bg-white/95 border border-slate-200/60 rounded-[28px] p-6 shadow-sm grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div>
-                        <h4 className="text-base font-black text-slate-900 mb-3 flex items-center gap-2 border-b border-slate-100 pb-2">
-                          <Info className="h-5 w-5 text-emerald-600" /> What Happened
+                        <h4 className="text-sm font-black text-slate-900 mb-2.5 flex items-center gap-1.5 border-b border-slate-100 pb-1.5">
+                          <Info className="h-4 w-4 text-emerald-600" /> What Happened
                         </h4>
-                        <ul className="list-disc pl-5 space-y-2 text-sm text-slate-600 font-medium leading-relaxed">
+                        <ul className="list-disc pl-4 space-y-1.5 text-xs text-slate-600 font-medium leading-relaxed">
                           {(result.whatHappened || result.description || "Pathogen activity detected on crop foliage.")
                             .split('.')
                             .map((s: string) => s.trim())
@@ -572,10 +611,10 @@ export default function DiseaseDetectionPage() {
                         </ul>
                       </div>
                       <div>
-                        <h4 className="text-base font-black text-slate-900 mb-3 flex items-center gap-2 border-b border-slate-100 pb-2">
-                          <AlertTriangle className="h-5 w-5 text-amber-600" /> Why It Happened
+                        <h4 className="text-sm font-black text-slate-900 mb-2.5 flex items-center gap-1.5 border-b border-slate-100 pb-1.5">
+                          <AlertTriangle className="h-4 w-4 text-amber-600" /> Why It Happened
                         </h4>
-                        <ul className="list-disc pl-5 space-y-2 text-sm text-slate-600 font-medium leading-relaxed">
+                        <ul className="list-disc pl-4 space-y-1.5 text-xs text-slate-600 font-medium leading-relaxed">
                           {(result.whyItHappened || "This is usually caused by excessive humidity or wetness on leaves.")
                             .split('.')
                             .map((s: string) => s.trim())
@@ -589,15 +628,15 @@ export default function DiseaseDetectionPage() {
 
                     {/* Visible Symptoms */}
                     {result.visibleSymptoms && result.visibleSymptoms.length > 0 && (
-                      <div className="bg-white/95 border border-slate-200/60 rounded-[28px] p-8 shadow-sm">
-                        <h3 className="font-black text-slate-900 flex items-center gap-2 text-xl mb-5">
-                          <Bug className="h-6 w-6 text-emerald-600" /> Visible Symptoms
+                      <div className="bg-white/95 border border-slate-200/60 rounded-[28px] p-6 shadow-sm">
+                        <h3 className="font-black text-slate-900 flex items-center gap-2 text-lg mb-4">
+                          <Bug className="h-5 w-5 text-emerald-600" /> Visible Symptoms
                         </h3>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                           {result.visibleSymptoms.map((sym: string, i: number) => (
-                            <div key={i} className="flex items-start gap-3 bg-slate-50/50 border border-slate-100 p-4 rounded-xl">
-                              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 mt-1.5 shrink-0" />
-                              <p className="text-sm text-slate-700 font-medium">{sym}</p>
+                            <div key={i} className="flex items-start gap-2 bg-slate-50/50 border border-slate-100 p-3 rounded-xl">
+                              <span className="w-2 h-2 rounded-full bg-emerald-500 mt-1.5 shrink-0" />
+                              <p className="text-xs text-slate-700 font-medium">{sym}</p>
                             </div>
                           ))}
                         </div>
@@ -606,15 +645,15 @@ export default function DiseaseDetectionPage() {
 
                     {/* Organic Remedy (What to do naturally) */}
                     {result.organicTreatment && result.organicTreatment.length > 0 && (
-                      <div className="bg-white/95 border border-slate-200/60 rounded-[28px] p-8 shadow-sm">
-                        <h3 className="font-black text-emerald-700 flex items-center gap-2 text-xl mb-5">
-                          <Leaf className="h-6 w-6 text-emerald-600" /> 🌿 Organic Remedy (Natural Solutions)
+                      <div className="bg-white/95 border border-slate-200/60 rounded-[28px] p-6 shadow-sm">
+                        <h3 className="font-black text-emerald-700 flex items-center gap-2 text-lg mb-4">
+                          <Leaf className="h-5 w-5 text-emerald-600" /> 🌿 Organic Remedy (Natural Solutions)
                         </h3>
-                        <div className="space-y-3">
+                        <div className="space-y-2">
                           {result.organicTreatment.map((item: string, i: number) => (
-                            <div key={i} className="flex items-start gap-3 bg-emerald-50/40 border border-emerald-100 p-4 rounded-xl">
-                              <span className="w-6 h-6 bg-emerald-100 text-emerald-700 font-bold text-sm rounded-full flex items-center justify-center shrink-0 mt-0.5">{i + 1}</span>
-                              <p className="text-base text-slate-700 font-medium">{item}</p>
+                            <div key={i} className="flex items-start gap-3 bg-emerald-50/40 border border-emerald-100 p-3.5 rounded-xl">
+                              <span className="w-5 h-5 bg-emerald-100 text-emerald-700 font-bold text-xs rounded-full flex items-center justify-center shrink-0 mt-0.5">{i + 1}</span>
+                              <p className="text-sm text-slate-700 font-medium">{item}</p>
                             </div>
                           ))}
                         </div>
@@ -623,22 +662,22 @@ export default function DiseaseDetectionPage() {
 
                     {/* Chemical Remedies */}
                     {result.chemicalTreatment && result.chemicalTreatment.length > 0 && (
-                      <div className="bg-white/95 border border-slate-200/60 rounded-[28px] p-8 shadow-sm">
-                        <h3 className="font-black text-blue-700 flex items-center gap-2 text-xl mb-5">
-                          <FlaskConical className="h-6 w-6 text-blue-600" /> 🧪 Chemical Solutions (Store Medicine)
+                      <div className="bg-white/95 border border-slate-200/60 rounded-[28px] p-6 shadow-sm">
+                        <h3 className="font-black text-blue-700 flex items-center gap-2 text-lg mb-4">
+                          <FlaskConical className="h-5 w-5 text-blue-600" /> 🧪 Chemical Solutions (Store Medicine)
                         </h3>
-                        <div className="space-y-4">
+                        <div className="space-y-3">
                           {result.chemicalTreatment.map((chem: any, i: number) => (
-                            <div key={i} className="bg-blue-50/40 border border-blue-100 p-5 rounded-xl space-y-2">
-                              <div className="flex justify-between items-center border-b border-blue-150/40 pb-2">
-                                <span className="font-bold text-blue-800 text-base flex items-center gap-2">
-                                  <FlaskConical className="h-5 w-5" /> {chem.medicine}
+                            <div key={i} className="bg-blue-50/40 border border-blue-100 p-4 rounded-xl space-y-2">
+                              <div className="flex justify-between items-center border-b border-blue-150/40 pb-1.5">
+                                <span className="font-bold text-blue-800 text-sm flex items-center gap-1.5">
+                                  <FlaskConical className="h-4 w-4" /> {chem.medicine}
                                 </span>
-                                <span className="bg-blue-100 text-blue-800 font-black text-sm px-3 py-1 rounded-full">
+                                <span className="bg-blue-100 text-blue-800 font-black text-xs px-2.5 py-0.5 rounded-full">
                                   Dosage: {chem.dosage}
                                 </span>
                               </div>
-                              <p className="text-sm text-slate-700 font-medium">
+                              <p className="text-xs text-slate-700 font-medium">
                                 <strong>How to apply:</strong> {chem.howToUse}
                               </p>
                             </div>
@@ -649,15 +688,15 @@ export default function DiseaseDetectionPage() {
 
                     {/* Urgent Actions */}
                     {result.doToday && result.doToday.length > 0 && (
-                      <div className="bg-white/95 border border-slate-200/60 rounded-[28px] p-8 shadow-sm">
-                        <h3 className="font-black text-amber-700 flex items-center gap-2 text-xl mb-5">
-                          <AlertTriangle className="h-6 w-6 text-amber-600" /> 🚨 Urgent Action (Save Other Crops)
+                      <div className="bg-white/95 border border-slate-200/60 rounded-[28px] p-6 shadow-sm">
+                        <h3 className="font-black text-amber-700 flex items-center gap-2 text-lg mb-4">
+                          <AlertTriangle className="h-5 w-5 text-amber-600" /> 🚨 Urgent Action (Save Other Crops)
                         </h3>
-                        <div className="space-y-3">
+                        <div className="space-y-2">
                           {result.doToday.map((item: string, i: number) => (
-                            <div key={i} className="flex items-start gap-3 bg-amber-50/40 border border-amber-100 p-4 rounded-xl">
-                              <span className="w-6 h-6 bg-amber-100 text-amber-700 font-bold text-sm rounded-full flex items-center justify-center shrink-0 mt-0.5">!</span>
-                              <p className="text-base text-slate-700 font-medium">{item}</p>
+                            <div key={i} className="flex items-start gap-3 bg-amber-50/40 border border-amber-100 p-3.5 rounded-xl">
+                              <span className="w-5 h-5 bg-amber-100 text-amber-700 font-bold text-xs rounded-full flex items-center justify-center shrink-0 mt-0.5">!</span>
+                              <p className="text-sm text-slate-700 font-medium">{item}</p>
                             </div>
                           ))}
                         </div>
@@ -666,15 +705,15 @@ export default function DiseaseDetectionPage() {
 
                     {/* Prevention */}
                     {result.prevention && result.prevention.length > 0 && (
-                      <div className="bg-white/95 border border-slate-200/60 rounded-[28px] p-8 shadow-sm">
-                        <h3 className="font-black text-teal-700 flex items-center gap-2 text-xl mb-5">
-                          <ShieldCheck className="h-6 w-6 text-teal-600" /> 🛡️ Prevention (For Next Time)
+                      <div className="bg-white/95 border border-slate-200/60 rounded-[28px] p-6 shadow-sm">
+                        <h3 className="font-black text-teal-700 flex items-center gap-2 text-lg mb-4">
+                          <ShieldCheck className="h-5 w-5 text-teal-600" /> 🛡️ Prevention (For Next Time)
                         </h3>
-                        <div className="space-y-3">
+                        <div className="space-y-2">
                           {result.prevention.map((item: string, i: number) => (
-                            <div key={i} className="flex items-start gap-3 bg-teal-50/40 border border-teal-100 p-4 rounded-xl">
-                              <span className="w-6 h-6 bg-teal-100 text-teal-700 font-bold text-sm rounded-full flex items-center justify-center shrink-0 mt-0.5">✓</span>
-                              <p className="text-base text-slate-700 font-medium">{item}</p>
+                            <div key={i} className="flex items-start gap-3 bg-teal-50/40 border border-teal-100 p-3.5 rounded-xl">
+                              <span className="w-5 h-5 bg-teal-100 text-teal-700 font-bold text-xs rounded-full flex items-center justify-center shrink-0 mt-0.5">✓</span>
+                              <p className="text-sm text-slate-700 font-medium">{item}</p>
                             </div>
                           ))}
                         </div>
@@ -683,11 +722,11 @@ export default function DiseaseDetectionPage() {
 
                     {/* Watering and Fertilizer Advice Grid */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
-                      <div className="bg-white/95 border border-slate-200/60 rounded-[28px] p-8 shadow-sm">
-                        <h4 className="text-base font-black text-slate-900 mb-3 flex items-center gap-2 border-b border-slate-100 pb-2">
-                          <Droplets className="h-5 w-5 text-blue-500" /> Watering Advice
+                      <div className="bg-white/95 border border-slate-200/60 rounded-[28px] p-5 shadow-sm">
+                        <h4 className="text-sm font-black text-slate-900 mb-2.5 flex items-center gap-1.5 border-b border-slate-100 pb-1.5">
+                          <Droplets className="h-4.5 w-4.5 text-blue-500" /> Watering Advice
                         </h4>
-                        <ul className="list-disc pl-5 space-y-2 text-sm text-slate-600 font-medium leading-relaxed">
+                        <ul className="list-disc pl-4 space-y-1.5 text-xs text-slate-600 font-medium leading-relaxed">
                           {(result.wateringAdvice || "Water only at the base of the plant in the morning so the soil dries during the day.")
                             .split('.')
                             .map((s: string) => s.trim())
@@ -697,11 +736,11 @@ export default function DiseaseDetectionPage() {
                             ))}
                         </ul>
                       </div>
-                      <div className="bg-white/95 border border-slate-200/60 rounded-[28px] p-8 shadow-sm">
-                        <h4 className="text-base font-black text-slate-900 mb-3 flex items-center gap-2 border-b border-slate-100 pb-2">
-                          <Sparkles className="h-5 w-5 text-emerald-500" /> Fertilizer Advice
+                      <div className="bg-white/95 border border-slate-200/60 rounded-[28px] p-5 shadow-sm">
+                        <h4 className="text-sm font-black text-slate-900 mb-2.5 flex items-center gap-1.5 border-b border-slate-100 pb-1.5">
+                          <Sparkles className="h-4.5 w-4.5 text-emerald-500" /> Fertilizer Advice
                         </h4>
-                        <ul className="list-disc pl-5 space-y-2 text-sm text-slate-600 font-medium leading-relaxed">
+                        <ul className="list-disc pl-4 space-y-1.5 text-xs text-slate-600 font-medium leading-relaxed">
                           {(result.fertilizerAdvice || "Apply a balanced potash-rich fertilizer to improve plant defense mechanisms.")
                             .split('.')
                             .map((s: string) => s.trim())

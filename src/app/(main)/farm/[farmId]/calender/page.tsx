@@ -134,7 +134,7 @@ export default function CalenderPage() {
 
       {/* ── Main Calendar ──────────────────────────────────────────────── */}
       <div className="flex-1 overflow-y-auto p-5 lg:p-7">
-
+        <div className="w-full max-w-4xl mx-auto">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div>
@@ -175,7 +175,7 @@ export default function CalenderPage() {
           {/* Date Grid */}
           <div className="grid grid-cols-7">
             {Array.from({ length: firstDay }).map((_, i) => (
-              <div key={`empty-${i}`} className="h-24 border-b border-r border-slate-50/80" />
+              <div key={`empty-${i}`} className="h-20 border-b border-r border-slate-50/80" />
             ))}
 
             {Array.from({ length: daysInMonth }).map((_, i) => {
@@ -190,7 +190,7 @@ export default function CalenderPage() {
                 <div
                   key={day}
                   onClick={() => setSelectedDate(dateKey)}
-                  className={`h-24 border-b border-r border-slate-50/80 p-2 cursor-pointer transition-all hover:bg-slate-50/80 relative ${isSelected ? "bg-green-50/60" : ""} ${isSunday ? "bg-red-50/20" : ""}`}
+                  className={`h-20 border-b border-r border-slate-50/80 p-2 cursor-pointer transition-all hover:bg-slate-50/80 relative ${isSelected ? "bg-green-50/60" : ""} ${isSunday ? "bg-red-50/20" : ""}`}
                 >
                   {/* Day number */}
                   <div className={`w-7 h-7 flex items-center justify-center rounded-full text-sm font-bold mb-1 ${
@@ -232,6 +232,7 @@ export default function CalenderPage() {
               <span className="text-[11px] text-slate-500 font-semibold">{meta.label}</span>
             </div>
           ))}
+        </div>
         </div>
       </div>
 
