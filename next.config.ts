@@ -19,4 +19,5 @@ const nextConfig: NextConfig = {
   },
 };
 
+// Force restart dev server
 export default nextConfig;
