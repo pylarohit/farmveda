@@ -8,6 +8,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useUserData } from "@/context/UserDataProvider";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
+
 type MessageType = 'text' | 'listing_card' | 'file';
 
 interface DBMessage {
@@ -94,7 +95,7 @@ export default function MessagePage() {
               title: searchParams.get('title') || 'Untitled',
               price: searchParams.get('price') || '0',
               unit: searchParams.get('unit') || 'hr',
-              image: searchParams.get('image') || '/rent.jpg',
+              image: searchParams.get('image') || null,
               type: searchParams.get('type') || 'rent',
             }
           };
