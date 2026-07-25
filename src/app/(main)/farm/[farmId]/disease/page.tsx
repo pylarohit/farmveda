@@ -1,4 +1,6 @@
 "use client";
+import { useParams } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
 
 import { useState, useRef, useEffect } from "react";
 import {
@@ -21,6 +23,8 @@ import {
   Loader2,
   ExternalLink,
   CalendarDays,
+  ArrowLeft,
+  Trash2,
 } from "lucide-react";
 
 const SCAN_STEPS = [
@@ -32,6 +36,9 @@ const SCAN_STEPS = [
 ];
 
 export default function DiseaseDetectionPage() {
+  const params = useParams();
+  const farmId = params.farmId as string;
+  const supabase = createClient();
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [scanState, setScanState] = useState<"idle" | "camera" | "scanning" | "results" | "error">("idle");
@@ -50,15 +57,30 @@ export default function DiseaseDetectionPage() {
   const [facingMode, setFacingMode] = useState<"environment" | "user">("environment");
   const scanStepInterval = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // Load history from localStorage
+  // Load history from Supabase
   useEffect(() => {
-    const stored = localStorage.getItem("crop_disease_history");
-    if (stored) {
-      try {
-        setHistory(JSON.parse(stored));
-      } catch { /* ignore */ }
-    }
-  }, []);
+    const fetchHistory = async () => {
+      const { data, error } = await supabase
+        .from("disease_scans")
+        .select("*")
+        .eq("farm_id", farmId)
+        .order("created_at", { ascending: false });
+
+      if (!error && data) {
+        const formattedHistory = data.map((item: any) => ({
+          id: item.id,
+          timestamp: new Date(item.created_at).toLocaleDateString(undefined, {
+            month: "short", day: "numeric", hour: "2-digit", minute: "2-digit",
+          }),
+          diseaseName: item.disease_name,
+          imageUrl: item.image_data,
+          result: item.result_json,
+        }));
+        setHistory(formattedHistory);
+      }
+    };
+    fetchHistory();
+  }, [farmId, supabase]);
 
   // Fetch products on results
   useEffect(() => {
@@ -99,6 +121,12 @@ export default function DiseaseDetectionPage() {
     setPreviewUrl(item.imageUrl);
     setScanState("results");
     setErrorMsg("");
+  };
+
+  const deleteHistoryItem = async (e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
+    setHistory((prev) => prev.filter((item) => item.id !== id));
+    await supabase.from("disease_scans").delete().eq("id", id);
   };
 
   const stopCamera = () => {
@@ -199,24 +227,37 @@ export default function DiseaseDetectionPage() {
       setResult(data);
       setScanState("results");
 
-      // Save to localStorage history
+      // Save to Supabase history
       const reader = new FileReader();
-      reader.onloadend = () => {
+      reader.onloadend = async () => {
         const base64data = reader.result as string;
-        const newHistoryItem = {
-          id: Date.now().toString(),
-          timestamp: new Date().toLocaleDateString(undefined, {
-            month: "short", day: "numeric", hour: "2-digit", minute: "2-digit",
-          }),
-          diseaseName: data.diseaseName,
-          imageUrl: base64data,
-          result: data,
-        };
-        setHistory((prev) => {
-          const updated = [newHistoryItem, ...prev.filter((item) => item.result.diseaseName !== data.diseaseName).slice(0, 9)];
-          localStorage.setItem("crop_disease_history", JSON.stringify(updated));
-          return updated;
-        });
+        
+        const { data: newRow, error } = await supabase
+          .from("disease_scans")
+          .insert({
+            farm_id: farmId,
+            disease_name: data.diseaseName,
+            image_data: base64data,
+            result_json: data
+          })
+          .select()
+          .single();
+
+        if (!error && newRow) {
+          const newHistoryItem = {
+            id: newRow.id,
+            timestamp: new Date(newRow.created_at).toLocaleDateString(undefined, {
+              month: "short", day: "numeric", hour: "2-digit", minute: "2-digit",
+            }),
+            diseaseName: data.diseaseName,
+            imageUrl: base64data,
+            result: data,
+          };
+          setHistory((prev) => {
+            const updated = [newHistoryItem, ...prev.filter((item) => item.result.diseaseName !== data.diseaseName).slice(0, 9)];
+            return updated;
+          });
+        }
       };
       reader.readAsDataURL(selectedFile);
     } catch (error: any) {
@@ -334,29 +375,35 @@ export default function DiseaseDetectionPage() {
               accept="image/*"
             />
 
-            {/* History Section */}
             {history.length > 0 && (
-              <div className="w-full max-w-3xl mt-12 animate-in fade-in slide-in-from-bottom-8 duration-700">
+              <div className="w-full mt-12 animate-in fade-in slide-in-from-bottom-8 duration-700">
                 <h3 className="text-xl font-black text-slate-900 mb-4 flex items-center gap-2">
                   <Activity className="h-5 w-5 text-emerald-600" /> Previous Plant Diagnoses
                 </h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="flex flex-col gap-3 w-full">
                   {history.map((item) => (
                     <div
                       key={item.id}
                       onClick={() => selectHistoryItem(item)}
                       className="bg-white/80 border border-slate-200/60 hover:border-emerald-300 hover:bg-emerald-50/10 rounded-2xl p-4 cursor-pointer flex items-center gap-4 transition-all shadow-sm hover:shadow-md"
                     >
-                      <div className="w-16 h-16 rounded-xl overflow-hidden border border-slate-200 shrink-0 bg-slate-100">
+                      <div className="w-14 h-14 rounded-xl overflow-hidden border border-slate-200 shrink-0 bg-slate-100">
                         <img src={item.imageUrl} alt={item.diseaseName} className="w-full h-full object-cover" />
                       </div>
-                      <div className="overflow-hidden">
+                      <div className="overflow-hidden flex-1">
                         <h4 className="font-bold text-slate-800 text-sm truncate">{item.diseaseName}</h4>
                         <p className="text-[11px] text-slate-500 mt-0.5">{item.timestamp}</p>
-                        <span className="inline-block text-[10px] font-black text-emerald-600 bg-emerald-50 px-2.5 py-0.5 rounded-full mt-1.5 uppercase tracking-wide">
-                          View Report
-                        </span>
                       </div>
+                      <span className="text-[10px] font-black text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-full uppercase tracking-wide shrink-0">
+                        View Report
+                      </span>
+                      <button
+                        onClick={(e) => deleteHistoryItem(e, item.id)}
+                        className="p-2 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-colors ml-2"
+                        title="Delete History"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
                     </div>
                   ))}
                 </div>
@@ -478,9 +525,8 @@ export default function DiseaseDetectionPage() {
                   {SCAN_STEPS.map((label, i) => (
                     <div
                       key={i}
-                      className={`flex items-center gap-2.5 transition-all duration-500 ${
-                        i <= scanStep ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2"
-                      }`}
+                      className={`flex items-center gap-2.5 transition-all duration-500 ${i <= scanStep ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2"
+                        }`}
                     >
                       {i < scanStep ? (
                         <CheckCircle2 className="h-4 w-4 text-emerald-400 shrink-0" />
@@ -503,6 +549,17 @@ export default function DiseaseDetectionPage() {
         {/* ──────────── RESULTS DASHBOARD ──────────── */}
         {scanState === "results" && previewUrl && result && (
           <div className="flex flex-col gap-6 items-start w-full animate-in fade-in duration-500">
+            {/* Back + Title Row */}
+            <div className="w-full flex items-center gap-3">
+              <button
+                onClick={resetScan}
+                className="p-2.5 bg-white hover:bg-slate-100 border border-slate-200 rounded-xl text-slate-700 transition-colors shadow-sm shrink-0"
+              >
+                <ArrowLeft className="h-5 w-5" />
+              </button>
+              <h2 className="text-2xl font-black text-slate-900 tracking-tight">Diagnosis Report</h2>
+            </div>
+
             {/* Farmer Message Banner */}
             {result.farmerMessage && (
               <div className="w-full bg-emerald-500 text-white rounded-[24px] p-5 shadow-md flex items-center gap-4 relative overflow-hidden">
@@ -527,11 +584,10 @@ export default function DiseaseDetectionPage() {
 
                 <div className="bg-white/95 backdrop-blur-xl border border-slate-200/80 rounded-[32px] p-6 shadow-md relative overflow-hidden">
                   <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/5 blur-[40px] rounded-full pointer-events-none" />
-                  <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border mb-4 uppercase tracking-wider ${
-                    result.diseaseName?.toLowerCase().includes("healthy")
+                  <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border mb-4 uppercase tracking-wider ${result.diseaseName?.toLowerCase().includes("healthy")
                       ? "bg-emerald-50 border-emerald-200 text-emerald-700"
                       : "bg-rose-50 border-rose-200 text-rose-700"
-                  }`}>
+                    }`}>
                     {result.diseaseName?.toLowerCase().includes("healthy") ? <Leaf className="h-3.5 w-3.5" /> : <AlertTriangle className="h-3.5 w-3.5" />}
                     {result.diseaseName?.toLowerCase().includes("healthy") ? "Healthy Plant" : "Sick Plant"}
                   </span>
@@ -767,7 +823,8 @@ export default function DiseaseDetectionPage() {
       )}
 
       {/* Animations */}
-      <style dangerouslySetInnerHTML={{ __html: `
+      <style dangerouslySetInnerHTML={{
+        __html: `
         @keyframes scanLineMove {
           0% { top: 0%; opacity: 0; }
           5% { opacity: 1; }
