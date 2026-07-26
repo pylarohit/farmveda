@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Image from "next/image";
 import { Send, Paperclip, Smile, Image as ImageIcon, File, MoreVertical, Phone, Video, Search, ChevronLeft, MapPin, CheckCircle2, Loader2, Trash2 } from "lucide-react";
@@ -31,7 +31,7 @@ interface Contact {
   time: string;
 }
 
-export default function MessagePage() {
+function MessageContent() {
   const searchParams = useSearchParams();
   const { user, loading: userLoading, onlineUsers, setUnreadMessages } = useUserData();
   const supabase = createClient();
@@ -563,5 +563,17 @@ export default function MessagePage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function MessagePage() {
+  return (
+    <Suspense fallback={
+      <div className="flex h-[calc(100vh-120px)] w-full items-center justify-center bg-transparent">
+        <Loader2 className="w-10 h-10 text-blue-500 animate-spin" />
+      </div>
+    }>
+      <MessageContent />
+    </Suspense>
   );
 }
