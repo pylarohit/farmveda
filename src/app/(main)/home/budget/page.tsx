@@ -944,6 +944,70 @@ export default function BudgetPage() {
         </div>
       )}
 
+      {/* MULTI-FIELD PERFORMANCE COMPARISON */}
+      {selectedFarmId === "all" && (
+        <div className="w-full bg-white border-2 border-slate-900 rounded-2xl shadow-[4px_4px_0px_rgba(15,23,42,1)] p-5 sm:p-6">
+          <div className="mb-4">
+            <h3 className="text-lg font-bold text-slate-900 font-sora">My Field Profits (Comparison)</h3>
+            <p className="text-slate-500 text-xs">Compare what you spent and what you earned across all your different farm fields</p>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse text-xs sm:text-sm">
+              <thead>
+                <tr className="bg-slate-50 border-b border-slate-100 text-[11px] font-black uppercase text-slate-400 tracking-wider whitespace-nowrap">
+                  <th className="py-3 px-4">Farm Field</th>
+                  <th className="py-3 px-3">Crop</th>
+                  <th className="py-3 px-4 text-right">Spending Limit</th>
+                  <th className="py-3 px-4 text-right">Spent</th>
+                  <th className="py-3 px-4 text-right">Earnings</th>
+                  <th className="py-3 px-4 text-right">Net Profit/Loss</th>
+                  <th className="py-3 px-5 text-center">Status</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 text-slate-700 font-semibold whitespace-nowrap">
+                {farmPerformanceList.map((fp) => {
+                  const isProfit = fp.profit >= 0;
+                  const ratio = fp.budget > 0 ? (fp.expense / fp.budget) * 100 : 0;
+
+                  return (
+                    <tr key={fp.id} className="hover:bg-slate-50/50 transition-colors">
+                      <td className="py-3.5 px-4 font-bold text-slate-800">{fp.name}</td>
+                      <td className="py-3.5 px-3">
+                        <span className="bg-slate-100 text-slate-700 px-2.5 py-1 rounded-full text-xs font-bold border border-slate-200">
+                          {fp.crop}
+                        </span>
+                      </td>
+                      <td className="py-3.5 px-4 text-right font-medium">{fp.budget > 0 ? formatCurrency(fp.budget) : "Not Set"}</td>
+                      <td className="py-3.5 px-4 text-right text-red-600 font-bold">{formatCurrency(fp.expense)}</td>
+                      <td className="py-3.5 px-4 text-right text-emerald-600 font-bold">{formatCurrency(fp.income)}</td>
+                      <td className={`py-3.5 px-4 text-right font-black ${isProfit ? "text-slate-900" : "text-red-500"}`}>
+                        {formatCurrency(fp.profit)}
+                      </td>
+                      <td className="py-3.5 px-5 text-center">
+                        {fp.budget > 0 ? (
+                          <span className={`inline-flex items-center justify-center px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap border shadow-sm ${
+                            ratio >= 100
+                              ? "bg-red-100 text-red-700 border-red-200"
+                              : ratio >= 80
+                                ? "bg-amber-100 text-amber-700 border-amber-200"
+                                : "bg-emerald-100 text-emerald-700 border-emerald-200"
+                          }`}>
+                            {ratio.toFixed(0)}% budget
+                          </span>
+                        ) : (
+                          <span className="text-xs text-slate-400 font-medium whitespace-nowrap">No Limit</span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
       {/* CHARTS GRAPH CONTAINER */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
@@ -1097,126 +1161,63 @@ export default function BudgetPage() {
 
       </div>
 
-      {/* MULTI-FIELD PERFORMANCE & PEER LOANS SECTIONS */}
-      {selectedFarmId === "all" && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-
-          {/* Multi-Field Cultivation Performance Table */}
-          <div className="bg-white border-2 border-slate-900 rounded-2xl shadow-[4px_4px_0px_rgba(15,23,42,1)] p-6">
-            <div className="mb-4">
-              <h3 className="text-lg font-bold text-slate-900 font-sora">My Field Profits (Comparison)</h3>
-              <p className="text-slate-500 text-xs">Compare what you spent and what you earned across all your different farm fields</p>
-            </div>
-
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse text-xs sm:text-sm">
-                <thead>
-                  <tr className="bg-slate-50 border-b border-slate-100 text-[10px] font-black uppercase text-slate-400 tracking-wider">
-                    <th className="py-3 px-4">Farm Field</th>
-                    <th className="py-3 px-4">Crop Grown</th>
-                    <th className="py-3 px-4 text-right">Spending Limit</th>
-                    <th className="py-3 px-4 text-right">Spent So Far</th>
-                    <th className="py-3 px-4 text-right">Earnings (Sales)</th>
-                    <th className="py-3 px-4 text-right">Net Profit/Loss</th>
-                    <th className="py-3 px-4 text-center">Status</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 text-slate-700 font-semibold">
-                  {farmPerformanceList.map((fp) => {
-                    const isProfit = fp.profit >= 0;
-                    const ratio = fp.budget > 0 ? (fp.expense / fp.budget) * 100 : 0;
-
-                    return (
-                      <tr key={fp.id} className="hover:bg-slate-50/50 transition-colors">
-                        <td className="py-3.5 px-4 font-bold text-slate-800">{fp.name}</td>
-                        <td className="py-3.5 px-4">
-                          <span className="bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full text-[11px] font-bold">
-                            {fp.crop}
-                          </span>
-                        </td>
-                        <td className="py-3.5 px-4 text-right">{fp.budget > 0 ? formatCurrency(fp.budget) : "Not Set"}</td>
-                        <td className="py-3.5 px-4 text-right text-red-600">{formatCurrency(fp.expense)}</td>
-                        <td className="py-3.5 px-4 text-right text-emerald-600">{formatCurrency(fp.income)}</td>
-                        <td className={`py-3.5 px-4 text-right font-black ${isProfit ? "text-slate-900" : "text-red-500"}`}>
-                          {formatCurrency(fp.profit)}
-                        </td>
-                        <td className="py-3.5 px-4 text-center">
-                          {fp.budget > 0 ? (
-                            <span className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold ${ratio >= 100
-                                ? "bg-red-100 text-red-700"
-                                : ratio >= 80
-                                  ? "bg-amber-100 text-amber-700"
-                                  : "bg-emerald-100 text-emerald-700"
-                              }`}>
-                              {ratio.toFixed(0)}% budget
-                            </span>
-                          ) : (
-                            <span className="text-[10px] text-slate-400 font-medium">No Limit</span>
-                          )}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          {/* Outstanding Peer Loans & Debts Ledger */}
-          <div className="bg-white border-2 border-slate-900 rounded-2xl shadow-[4px_4px_0px_rgba(15,23,42,1)] p-6 flex flex-col justify-between">
-            <div>
-              <h3 className="text-lg font-bold text-slate-900 font-sora">Udhaar (Lent / Borrowed Money)</h3>
-              <p className="text-slate-500 text-xs mb-4">Keep track of money you borrowed from lenders/banks, or money you lent to workers/neighbors</p>
-            </div>
-
-            <div className="space-y-4 max-h-[300px] overflow-y-auto pr-1 flex-1">
-              {peerLoanStats.reminders.length > 0 ? (
-                peerLoanStats.reminders.map((loan) => {
-                  const isOwe = loan.type === "income"; // income means we borrowed it
-
-                  return (
-                    <div key={loan.id} className="border border-slate-100 rounded-xl p-3.5 bg-slate-50 flex items-center justify-between gap-4">
-                      <div className="space-y-1 min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="font-bold text-slate-800 text-sm truncate">{loan.peerName}</span>
-                          <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full ${isOwe ? "bg-red-150 text-red-750 border border-red-200" : "bg-blue-150 text-blue-750 border border-blue-200"
-                            }`}>
-                            {isOwe ? "Owe to repay" : "Need to collect"}
-                          </span>
-                        </div>
-                        <p className="text-[11px] text-slate-500 font-medium">
-                          Crop: {loan.crop} | Pay/Collect Date: <span className="font-bold">{loan.dueDate}</span>
-                        </p>
-                        <p className={`text-[10px] font-bold ${loan.daysLeft < 0 ? "text-red-500 animate-pulse" : "text-slate-400"}`}>
-                          {loan.daysLeft < 0 ? `Late by ${Math.abs(loan.daysLeft)} days` : `${loan.daysLeft} days remaining`}
-                        </p>
-                      </div>
-
-                      <div className="flex flex-col items-end gap-2 shrink-0">
-                        <span className={`text-sm font-black ${isOwe ? "text-red-600" : "text-slate-900"}`}>
-                          {formatCurrency(loan.amount)}
-                        </span>
-                        <button
-                          onClick={() => handleSettleDebt(loan.id)}
-                          className="bg-slate-900 hover:bg-slate-800 text-white font-extrabold text-[10px] py-1 px-3 rounded-lg transition-all cursor-pointer whitespace-nowrap shadow-sm"
-                        >
-                          Mark Paid
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })
-              ) : (
-                <div className="flex flex-col items-center justify-center py-12 text-center text-slate-400">
-                  <PiggyBank className="h-8 w-8 text-slate-200 mb-1" />
-                  <p className="text-xs font-semibold">No active borrowing or lending found.</p>
-                </div>
-              )}
-            </div>
-          </div>
-
+      {/* OUTSTANDING PEER LOANS & DEBTS LEDGER */}
+      <div className="bg-white border-2 border-slate-900 rounded-2xl shadow-[4px_4px_0px_rgba(15,23,42,1)] p-5 sm:p-6">
+        <div className="mb-4">
+          <h3 className="text-lg font-bold text-slate-900 font-sora">Udhaar (Lent / Borrowed Money)</h3>
+          <p className="text-slate-500 text-xs">Keep track of money you borrowed from lenders/banks, or money you lent to workers/neighbors</p>
         </div>
-      )}
+
+        <div className="mt-4">
+          {peerLoanStats.reminders.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {peerLoanStats.reminders.map((loan) => {
+                const isOwe = loan.type === "income"; // income means we borrowed it
+
+                return (
+                  <div key={loan.id} className="border-2 border-slate-200 rounded-xl p-4 bg-slate-50/70 hover:bg-slate-50 transition-all flex flex-col justify-between gap-3 shadow-[2px_2px_0px_rgba(15,23,42,0.06)]">
+                    <div className="space-y-1.5 min-w-0">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="font-bold text-slate-900 text-sm truncate">{loan.peerName}</span>
+                        <span className={`text-[10px] font-extrabold px-2.5 py-0.5 rounded-full border shadow-xs ${isOwe ? "bg-red-100 text-red-700 border-red-200" : "bg-blue-100 text-blue-700 border-blue-200"
+                          }`}>
+                          {isOwe ? "Owe to repay" : "Need to collect"}
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-600 font-medium">
+                        Crop: <span className="font-bold text-slate-700">{loan.crop}</span>
+                      </p>
+                      <p className="text-[11px] text-slate-500">
+                        Due Date: <span className="font-bold text-slate-700">{loan.dueDate}</span>
+                      </p>
+                      <p className={`text-[11px] font-bold ${loan.daysLeft < 0 ? "text-red-500 animate-pulse" : "text-slate-500"}`}>
+                        {loan.daysLeft < 0 ? `Late by ${Math.abs(loan.daysLeft)} days` : `${loan.daysLeft} days remaining`}
+                      </p>
+                    </div>
+
+                    <div className="flex items-center justify-between pt-2 border-t border-slate-200/60 mt-1">
+                      <span className={`text-base font-black font-sora ${isOwe ? "text-red-600" : "text-slate-900"}`}>
+                        {formatCurrency(loan.amount)}
+                      </span>
+                      <button
+                        onClick={() => handleSettleDebt(loan.id)}
+                        className="bg-slate-900 hover:bg-slate-800 text-white font-extrabold text-xs py-1.5 px-3.5 rounded-lg transition-all cursor-pointer whitespace-nowrap shadow-sm"
+                      >
+                        Mark Paid
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center py-8 text-center text-slate-400">
+              <PiggyBank className="h-8 w-8 text-slate-200 mb-1" />
+              <p className="text-xs font-semibold">No active borrowing or lending found.</p>
+            </div>
+          )}
+        </div>
+      </div>
 
       {/* FILTER & TRANSACTION LOG TABLE */}
       <div className="bg-white border-2 border-slate-900 rounded-2xl shadow-[4px_4px_0px_rgba(15,23,42,1)] overflow-hidden">
@@ -1278,12 +1279,12 @@ export default function BudgetPage() {
           {filteredTransactions.length > 0 ? (
             <table className="w-full text-left border-collapse text-xs sm:text-sm">
               <thead>
-                <tr className="bg-slate-50 border-b border-slate-100 text-[11px] font-black uppercase text-slate-400 tracking-wider">
+                <tr className="bg-slate-50 border-b border-slate-100 text-[11px] font-black uppercase text-slate-400 tracking-wider whitespace-nowrap">
                   <th className="py-3.5 px-6">Date</th>
                   <th className="py-3.5 px-6">Description</th>
                   <th className="py-3.5 px-6">Farm Field</th>
                   <th className="py-3.5 px-6">Crop</th>
-                  <th className="py-3.5 px-6">Type of Expense / Income</th>
+                  <th className="py-3.5 px-6">Category / Type</th>
                   <th className="py-3.5 px-6 text-right">Amount</th>
                   <th className="py-3.5 px-6 text-center w-16">Actions</th>
                 </tr>
@@ -1296,7 +1297,7 @@ export default function BudgetPage() {
                     <tr key={tx.id} className="hover:bg-slate-50/50 transition-colors">
                       <td className="py-3.5 px-6 text-slate-500 font-medium whitespace-nowrap">
                         <div className="flex items-center gap-2">
-                          <Calendar className="h-3.5 w-3.5 text-slate-400" />
+                          <CalendarIcon className="h-3.5 w-3.5 text-slate-400 shrink-0" />
                           <span>{tx.date}</span>
                         </div>
                       </td>
