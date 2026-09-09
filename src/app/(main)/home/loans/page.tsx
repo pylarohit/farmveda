@@ -37,6 +37,9 @@ import {
   AlertCircle,
   FileCheck,
   CalendarClock,
+  Trash2,
+  Eye,
+  HelpCircle,
 } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { useUserData } from "@/context/UserDataProvider";
@@ -182,7 +185,7 @@ function parseBookingStatus(rawStatus: string): {
             year: "numeric",
           });
         }
-      } catch (_) {}
+      } catch (_) { }
 
       let tText = callTime;
       if (callTime && callTime.includes(":")) {
@@ -237,13 +240,11 @@ function formatBorrowerDetails(u: any, farms: any[]): BorrowerInfo {
 
   let landDisplay = "Land details not added";
   if (totalAcres > 0) {
-    landDisplay = `${totalAcres} Acre${totalAcres > 1 ? "s" : ""}${
-      crops.length > 0 ? ` (${crops.slice(0, 2).join(", ")})` : ""
-    }`;
+    landDisplay = `${totalAcres} Acre${totalAcres > 1 ? "s" : ""}${crops.length > 0 ? ` (${crops.slice(0, 2).join(", ")})` : ""
+      }`;
   } else if (farms.length > 0) {
-    landDisplay = `${farms.length} Farm${farms.length > 1 ? "s" : ""}${
-      crops.length > 0 ? ` (${crops.slice(0, 2).join(", ")})` : ""
-    }`;
+    landDisplay = `${farms.length} Farm${farms.length > 1 ? "s" : ""}${crops.length > 0 ? ` (${crops.slice(0, 2).join(", ")})` : ""
+      }`;
   }
 
   return {
@@ -278,7 +279,7 @@ function playNotificationSound() {
     gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4);
     osc.start();
     osc.stop(ctx.currentTime + 0.4);
-  } catch (_) {}
+  } catch (_) { }
 }
 
 function sendInAppNotification(title: string, message: string, icon = "🌾") {
@@ -312,14 +313,14 @@ function sendInAppNotification(title: string, message: string, icon = "🌾") {
         body: message,
         icon: "/favicon.ico",
       });
-    } catch (_) {}
+    } catch (_) { }
   }
 }
 
 function requestBrowserNotificationPermission() {
   if (typeof window !== "undefined" && "Notification" in window) {
     if (Notification.permission === "default") {
-      Notification.requestPermission().catch(() => {});
+      Notification.requestPermission().catch(() => { });
     }
   }
 }
@@ -334,6 +335,8 @@ function FarmerLoanCard({
   pendingCount = 0,
   totalRequests = 0,
   onClick,
+  onDelete,
+  onRelist,
 }: {
   loan: FarmerLoan;
   index: number;
@@ -341,106 +344,163 @@ function FarmerLoanCard({
   pendingCount?: number;
   totalRequests?: number;
   onClick: () => void;
+  onDelete?: (loanId: string) => void;
+  onRelist?: (loanId: string) => void;
 }) {
-  const accent = CARD_ACCENT_COLORS[index % CARD_ACCENT_COLORS.length];
   const cropColor = CROP_COLORS[loan.crop_type] || CROP_COLORS["Other"];
+  const isClosed = loan.conditions?.includes("[CLOSED]");
+  const cleanLocation = (loan.location || "").replace(/\s*,\s*/g, ", ").trim();
+  const displayDuration = /^\d+$/.test(loan.duration?.trim() || "") ? `${loan.duration.trim()} Months` : (loan.duration || "Flexible");
 
   return (
     <div
       onClick={onClick}
-      className={`${accent} rounded-3xl p-5 border-2 border-slate-900 shadow-[3px_3px_0px_rgba(15,23,42,1)] flex flex-col justify-between hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0px_rgba(15,23,42,1)] transition-all cursor-pointer min-h-[260px]`}
+      className="bg-white rounded-3xl p-5 border border-slate-200/90 hover:border-slate-300 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col justify-between cursor-pointer min-h-[270px] relative overflow-hidden group hover:-translate-y-0.5"
     >
-      {/* Header row: time + crop + optional own-badge */}
-      <div className="flex justify-between items-start gap-2">
-        <div className="flex items-center gap-1.5 flex-wrap">
-          <div className="bg-slate-900 text-white text-[9px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider flex items-center gap-1">
-            <Clock className="h-3 w-3" />
-            {timeAgo(loan.created_at)}
+      {/* Top Accent Strip */}
+      <div
+        className={`h-1 absolute top-0 left-0 right-0 ${isClosed
+            ? "bg-slate-300"
+            : "bg-gradient-to-r from-emerald-500 via-teal-500 to-blue-500"
+          }`}
+      />
+
+      {/* Top section: Badges + Profile + Amount */}
+      <div>
+        {/* Row 1: Badges + Crop Tag */}
+        <div className="flex justify-between items-center gap-2 mb-3">
+          <div className="flex items-center gap-1.5 flex-wrap">
+            {isOwn && (
+              <span className="bg-slate-900 text-white text-[9px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider">
+                Your Post
+              </span>
+            )}
+            {isClosed ? (
+              <span className="bg-rose-50 text-rose-700 border border-rose-200 text-[9px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider flex items-center gap-1">
+                Closed / Delisted
+              </span>
+            ) : isOwn && pendingCount > 0 ? (
+              <span className="bg-amber-100 text-amber-900 border border-amber-300 text-[9px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider flex items-center gap-1 animate-pulse">
+                <Inbox className="h-3 w-3 text-amber-700" />
+                {pendingCount} New Request{pendingCount > 1 ? "s" : ""}
+              </span>
+            ) : totalRequests > 0 ? (
+              <span className="bg-slate-100 text-slate-700 text-[9px] font-extrabold px-2 py-0.5 rounded-full flex items-center gap-1">
+                <Users className="h-3 w-3 text-slate-500" />
+                {totalRequests} Applied
+              </span>
+            ) : null}
+            <span className="text-[10px] font-semibold text-slate-400 flex items-center gap-1">
+              <Clock className="h-3 w-3 text-slate-400" />
+              {timeAgo(loan.created_at)}
+            </span>
           </div>
-          {isOwn && (
-            <span className="bg-blue-600 text-white text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider">
-              Your Post
-            </span>
-          )}
-          {isOwn && pendingCount > 0 && (
-            <span className="bg-amber-400 text-slate-950 text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider flex items-center gap-1 animate-pulse">
-              <Inbox className="h-3 w-3" />
-              {pendingCount} New Request{pendingCount > 1 ? "s" : ""}
-            </span>
-          )}
-          {isOwn && pendingCount === 0 && totalRequests > 0 && (
-            <span className="bg-slate-200 text-slate-800 text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider flex items-center gap-1">
-              <Users className="h-3 w-3" />
-              {totalRequests} Applied
-            </span>
-          )}
-        </div>
-        <span className={`text-[9px] font-black border px-2 py-0.5 rounded-full uppercase shrink-0 ${cropColor}`}>
-          {loan.crop_type || "General"}
-        </span>
-      </div>
 
-      {/* Farmer info */}
-      <div className="my-3 flex items-center gap-2.5">
-        <div className="w-10 h-10 rounded-full bg-slate-900 flex items-center justify-center shrink-0 text-white text-xs font-black shadow">
-          {loan.farmer_avatar ? (
-            <img src={loan.farmer_avatar} alt={loan.farmer_name} className="w-10 h-10 rounded-full object-cover" />
-          ) : (
-            getInitials(loan.farmer_name || "FA")
-          )}
-        </div>
-        <div className="min-w-0">
-          <p className="font-extrabold text-slate-900 text-sm leading-tight font-sora truncate">
-            {loan.farmer_name || "Anonymous Farmer"}
-          </p>
-          {loan.location && (
-            <p className="text-[10px] text-slate-500 font-semibold flex items-center gap-0.5 mt-0.5">
-              <MapPin className="h-3 w-3 shrink-0" />
-              <span className="truncate">{loan.location}</span>
-            </p>
-          )}
-        </div>
-      </div>
-
-      {/* Amount + Description */}
-      <div className="space-y-1">
-        <div className="flex items-baseline gap-0.5">
-          <span className="text-sm font-black text-slate-900">₹</span>
-          <span className="text-2xl font-black text-slate-900 font-sora leading-none">
-            {Number(loan.amount).toLocaleString("en-IN")}
+          <span className={`text-[9px] font-extrabold border px-2.5 py-0.5 rounded-full uppercase shrink-0 ${cropColor}`}>
+            {loan.crop_type || "General"}
           </span>
         </div>
-        <p className="text-xs text-slate-600 line-clamp-2 leading-relaxed font-semibold">
-          {loan.description}
-        </p>
+
+        {/* Row 2: Farmer Profile */}
+        <div className="flex items-center gap-3 mb-3">
+          <div className="w-11 h-11 rounded-full bg-gradient-to-br from-slate-800 to-slate-950 flex items-center justify-center shrink-0 text-white text-xs font-black shadow-inner ring-2 ring-slate-100">
+            {loan.farmer_avatar ? (
+              <img src={loan.farmer_avatar} alt={loan.farmer_name} className="w-11 h-11 rounded-full object-cover" />
+            ) : (
+              getInitials(loan.farmer_name || "FA")
+            )}
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="font-extrabold text-slate-900 text-sm leading-tight font-sora truncate group-hover:text-emerald-700 transition-colors">
+              {loan.farmer_name || "Anonymous Farmer"}
+            </p>
+            {cleanLocation && (
+              <p className="text-[11px] text-slate-500 font-medium flex items-center gap-1 mt-0.5 truncate">
+                <MapPin className="h-3 w-3 text-slate-400 shrink-0" />
+                <span className="truncate">{cleanLocation}</span>
+              </p>
+            )}
+          </div>
+        </div>
+
+        {/* Row 3: Amount + Purpose */}
+        <div className="space-y-1.5 mb-3">
+          <div className="flex items-baseline justify-between gap-1">
+            <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Loan Amount</span>
+            <span className="text-xl sm:text-2xl font-black text-slate-900 font-sora tracking-tight">
+              ₹{Number(loan.amount).toLocaleString("en-IN")}
+            </span>
+          </div>
+          {loan.description && (
+            <div className="bg-slate-50/80 border border-slate-100 rounded-xl px-3 py-2 text-xs text-slate-600 font-medium line-clamp-2 leading-relaxed">
+              &ldquo;{loan.description}&rdquo;
+            </div>
+          )}
+        </div>
+
+        {/* Row 4: Duration & Interest badges */}
+        <div className="flex items-center gap-2 mb-3">
+          <span className="flex items-center gap-1.5 bg-slate-50 border border-slate-200/80 text-slate-700 px-2.5 py-1 rounded-lg text-[10px] font-extrabold uppercase">
+            <Timer className="h-3 w-3 text-slate-400" />
+            {displayDuration}
+          </span>
+          <span className={`flex items-center gap-1.5 border px-2.5 py-1 rounded-lg text-[10px] font-extrabold uppercase ${loan.interest_rate === 0
+              ? "bg-emerald-50 border-emerald-200 text-emerald-700"
+              : "bg-slate-50 border-slate-200/80 text-slate-700"
+            }`}>
+            <Percent className="h-3 w-3 text-emerald-600" />
+            {loan.interest_rate === 0 ? "Interest Free" : `${loan.interest_rate} P.A.`}
+          </span>
+        </div>
       </div>
 
       {/* Footer */}
-      <div className="space-y-2.5 mt-3">
-        <div className="flex flex-wrap gap-1.5">
-          <span className="flex items-center gap-1 bg-white/80 border border-slate-200 text-slate-700 px-2.5 py-1 rounded-lg text-[10px] font-black uppercase">
-            <Timer className="h-3 w-3" />
-            {loan.duration}
-          </span>
-          <span className={`flex items-center gap-1 border px-2.5 py-1 rounded-lg text-[10px] font-black uppercase ${
-            loan.interest_rate === 0
-              ? "bg-emerald-50 border-emerald-200 text-emerald-700"
-              : "bg-white/80 border-slate-200 text-slate-700"
-          }`}>
-            <Percent className="h-3 w-3" />
-            {loan.interest_rate === 0 ? "Interest Free" : `${loan.interest_rate}% p.a.`}
+      <div className="pt-2.5 border-t border-slate-100 flex items-center justify-between gap-2">
+        <div className="flex items-center gap-1.5 min-w-0 text-slate-500 text-xs font-mono font-bold">
+          <Phone className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+          <span className="truncate">
+            {isOwn ? loan.farmer_phone : maskPhone(loan.farmer_phone)}
           </span>
         </div>
-        <hr className="border-slate-900/10" />
-        <div className="flex justify-between items-center">
-          <div className="flex items-center gap-1">
-            <Phone className="h-3.5 w-3.5 text-slate-400" />
-            <span className="text-[10px] font-bold text-slate-500">
-              {isOwn ? loan.farmer_phone : maskPhone(loan.farmer_phone)}
-            </span>
-          </div>
-          <button className="bg-slate-900 hover:bg-slate-700 text-white text-[11px] font-black px-4 py-1.5 rounded-lg transition-all shadow-[1px_1px_0px_rgba(15,23,42,0.3)] cursor-pointer flex items-center gap-1 active:translate-y-[1px]">
-            View <ChevronRight className="h-3.5 w-3.5" />
+
+        <div className="flex items-center gap-1.5 shrink-0">
+          {isOwn && onRelist && isClosed && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onRelist(loan.id);
+              }}
+              className="bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-300 text-[11px] font-black px-2.5 py-1.5 rounded-xl transition-all cursor-pointer flex items-center gap-1 active:translate-y-[1px]"
+              title="Re-list on marketplace"
+            >
+              <Sparkles className="h-3 w-3 text-emerald-600" />
+              <span>Re-list</span>
+            </button>
+          )}
+          {isOwn && onDelete && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                if (window.confirm("Are you sure you want to delete this loan post?")) {
+                  onDelete(loan.id);
+                }
+              }}
+              className="bg-rose-50 hover:bg-rose-100 text-rose-700 hover:text-rose-800 border border-rose-200 hover:border-rose-300 text-[11px] font-black px-2.5 py-1.5 rounded-xl transition-all cursor-pointer flex items-center gap-1 active:translate-y-[1px]"
+              title="Delete this loan post"
+            >
+              <Trash2 className="h-3 w-3 text-rose-600" />
+              <span>Delete</span>
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={onClick}
+            className="bg-slate-900 hover:bg-slate-800 text-white text-[11px] font-black px-3.5 py-1.5 rounded-xl transition-all shadow-sm cursor-pointer flex items-center gap-1 group-hover:bg-slate-950 active:translate-y-[1px]"
+          >
+            <span>View</span>
+            <ChevronRight className="h-3 w-3 group-hover:translate-x-0.5 transition-transform" />
           </button>
         </div>
       </div>
@@ -706,21 +766,29 @@ function ScheduleCallModal({
   loan,
   onClose,
   onConfirm,
+  onDeletePost,
   loading = false,
 }: {
   booking: EnrichedBooking;
   loan?: FarmerLoan;
   onClose: () => void;
   onConfirm: (bookingId: string, callDate: string, callTime: string, note?: string) => Promise<void>;
+  onDeletePost?: (loanId: string) => Promise<void>;
   loading?: boolean;
 }) {
   const tomorrow = new Date();
   tomorrow.setDate(tomorrow.getDate() + 1);
   const defaultDateStr = tomorrow.toISOString().split("T")[0];
 
+  const [step, setStep] = useState<"schedule" | "decision">("schedule");
   const [date, setDate] = useState(booking.callDate || defaultDateStr);
   const [time, setTime] = useState(booking.callTime || "10:30");
   const [note, setNote] = useState(booking.callNote || "");
+  const [isScheduling, setIsScheduling] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const targetLoan = loan || booking.loan;
+  const targetLoanId = targetLoan?.id || booking.loan_id;
 
   const handleQuickDate = (offsetDays: number) => {
     const d = new Date();
@@ -732,13 +800,45 @@ function ScheduleCallModal({
     setTime(t);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmitSchedule = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!date || !time) {
       toast.error("Please pick a call date and time.");
       return;
     }
-    await onConfirm(booking.id, date, time, note);
+    setIsScheduling(true);
+    try {
+      await onConfirm(booking.id, date, time, note);
+      setStep("decision");
+    } catch {
+      // Handled by onConfirm
+    } finally {
+      setIsScheduling(false);
+    }
+  };
+
+  const handleKeepPost = () => {
+    toast.success("Post kept active! Other farmers can continue to apply.");
+    onClose();
+  };
+
+  const handleDeletePost = async () => {
+    if (!targetLoanId) {
+      toast.error("Could not locate loan listing.");
+      onClose();
+      return;
+    }
+    setIsDeleting(true);
+    try {
+      if (onDeletePost) {
+        await onDeletePost(targetLoanId);
+      }
+      onClose();
+    } catch {
+      // Handled in onDeletePost
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   return (
@@ -748,12 +848,14 @@ function ScheduleCallModal({
         <div className="bg-slate-900 p-5 flex items-center justify-between text-white shrink-0">
           <div className="flex items-center gap-2.5">
             <div className="p-2 bg-emerald-500/20 text-emerald-400 rounded-xl">
-              <CalendarClock className="h-5 w-5" />
+              {step === "decision" ? <CheckCircle2 className="h-5 w-5" /> : <CalendarClock className="h-5 w-5" />}
             </div>
             <div>
-              <h3 className="text-base font-extrabold font-sora">Schedule Connection Call</h3>
+              <h3 className="text-base font-extrabold font-sora">
+                {step === "decision" ? "Meeting Scheduled! 🎉" : "Schedule Connection Call"}
+              </h3>
               <p className="text-slate-400 text-[10px] font-semibold">
-                Set date &amp; time to talk with the farmer
+                {step === "decision" ? "Manage your marketplace listing" : "Set date & time to talk with the farmer"}
               </p>
             </div>
           </div>
@@ -763,153 +865,249 @@ function ScheduleCallModal({
         </div>
 
         {/* Content */}
-        <form onSubmit={handleSubmit} className="p-5 space-y-4 text-xs font-semibold">
-          {/* Applicant Info Box */}
-          <div className="bg-slate-50 border border-slate-200 rounded-2xl p-3 flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-slate-900 flex items-center justify-center text-white text-xs font-black shrink-0">
-              {booking.borrower?.avatar ? (
-                <img src={booking.borrower.avatar} alt={booking.borrower.userName} className="w-10 h-10 rounded-full object-cover" />
-              ) : (
-                getInitials(booking.borrower?.userName || "Farmer")
-              )}
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="font-extrabold text-slate-900 text-sm truncate">
-                {booking.borrower?.userName || "Farmer"}
-              </p>
-              <p className="text-slate-500 text-[11px] truncate">
-                📍 {booking.borrower?.location || "Local"} • 🌱 {booking.borrower?.landDisplay || "Land details registered"}
-              </p>
-              {booking.borrower?.userPhone && (
-                <p className="text-emerald-700 font-bold text-[11px] font-mono mt-0.5">
-                  📞 {booking.borrower.userPhone}
+        {step === "decision" ? (
+          <div className="p-5 space-y-4 text-xs font-semibold">
+            {/* Scheduled confirmation banner */}
+            <div className="bg-emerald-50 border-2 border-emerald-300 rounded-2xl p-3.5 flex items-start gap-3">
+              <div className="p-1.5 bg-emerald-100 text-emerald-700 rounded-lg shrink-0 mt-0.5">
+                <Calendar className="h-4 w-4" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <span className="text-[10px] font-black uppercase text-emerald-700 tracking-wider block">
+                  Connection Meeting Confirmed
+                </span>
+                <p className="font-extrabold text-slate-900 text-xs mt-0.5">
+                  Call with {booking.borrower?.userName || "Farmer"} set for {date} at {time}
                 </p>
-              )}
-            </div>
-          </div>
-
-          {/* Date Picker + Quick Chips */}
-          <div className="space-y-1.5">
-            <div className="flex items-center justify-between">
-              <label className="text-[10px] font-black uppercase text-slate-500 tracking-wider flex items-center gap-1">
-                <Calendar className="h-3 w-3 text-blue-600" /> Call Date *
-              </label>
-              <div className="flex items-center gap-1">
-                <button
-                  type="button"
-                  onClick={() => handleQuickDate(0)}
-                  className="bg-slate-100 hover:bg-slate-200 text-slate-700 text-[9px] font-extrabold px-2 py-0.5 rounded-md cursor-pointer transition-colors"
-                >
-                  Today
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleQuickDate(1)}
-                  className="bg-slate-100 hover:bg-slate-200 text-slate-700 text-[9px] font-extrabold px-2 py-0.5 rounded-md cursor-pointer transition-colors"
-                >
-                  Tomorrow
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleQuickDate(2)}
-                  className="bg-slate-100 hover:bg-slate-200 text-slate-700 text-[9px] font-extrabold px-2 py-0.5 rounded-md cursor-pointer transition-colors"
-                >
-                  In 2 Days
-                </button>
+                {note && (
+                  <p className="text-[11px] text-emerald-800 italic mt-0.5">
+                    &quot;{note}&quot;
+                  </p>
+                )}
               </div>
             </div>
-            <input
-              type="date"
-              required
-              value={date}
-              onChange={(e) => setDate(e.target.value)}
-              className="w-full bg-white border-2 border-slate-200 focus:border-slate-900 rounded-xl px-3 py-2 text-xs font-bold outline-none"
-            />
-          </div>
 
-          {/* Time Picker + Quick Chips */}
-          <div className="space-y-1.5">
-            <div className="flex items-center justify-between">
-              <label className="text-[10px] font-black uppercase text-slate-500 tracking-wider flex items-center gap-1">
-                <Clock className="h-3 w-3 text-emerald-600" /> Call Time *
-              </label>
-              <div className="flex items-center gap-1">
-                {["10:00", "14:00", "17:30", "19:00"].map((t) => (
-                  <button
-                    key={t}
-                    type="button"
-                    onClick={() => handleQuickTime(t)}
-                    className={`text-[9px] font-extrabold px-2 py-0.5 rounded-md cursor-pointer transition-colors ${
-                      time === t ? "bg-emerald-600 text-white" : "bg-slate-100 hover:bg-slate-200 text-slate-700"
-                    }`}
-                  >
-                    {t === "10:00" ? "10 AM" : t === "14:00" ? "2 PM" : t === "17:30" ? "5:30 PM" : "7 PM"}
-                  </button>
-                ))}
-              </div>
-            </div>
-            <input
-              type="time"
-              required
-              value={time}
-              onChange={(e) => setTime(e.target.value)}
-              className="w-full bg-white border-2 border-slate-200 focus:border-slate-900 rounded-xl px-3 py-2 text-xs font-bold outline-none"
-            />
-          </div>
-
-          {/* Optional Note */}
-          <div className="space-y-1.5">
-            <label className="text-[10px] font-black uppercase text-slate-500 tracking-wider flex items-center gap-1">
-              <Tag className="h-3 w-3 text-amber-500" /> Note for Call (Optional)
-            </label>
-            <input
-              type="text"
-              placeholder="e.g. Discuss loan terms & documents required before payout"
-              value={note}
-              onChange={(e) => setNote(e.target.value)}
-              className="w-full bg-white border-2 border-slate-200 focus:border-slate-900 rounded-xl px-3 py-2 text-xs font-semibold outline-none"
-            />
-          </div>
-
-          {/* Call Connection Preview */}
-          <div className="bg-emerald-50/90 border border-emerald-300 rounded-xl p-3 flex items-start gap-2 text-emerald-900 text-[11px] leading-relaxed">
-            <PhoneCall className="h-4 w-4 text-emerald-600 shrink-0 mt-0.5" />
-            <div>
-              <p className="font-extrabold">Both of you will be scheduled to connect</p>
-              <p className="text-emerald-700 text-[10px] mt-0.5">
-                The farmer will see this scheduled call time on their application ticket and can call you or receive your call.
+            {/* Prompt Question */}
+            <div className="bg-slate-50 border border-slate-200 rounded-2xl p-3.5 space-y-1">
+              <h4 className="font-extrabold text-slate-900 text-sm font-sora flex items-center gap-1.5">
+                <HelpCircle className="h-4 w-4 text-amber-500" /> Keep or Delete this loan post?
+              </h4>
+              <p className="text-slate-600 text-[11px] leading-relaxed font-normal">
+                Now that you have scheduled a meeting for this loan, would you like to keep the post active on the marketplace or remove it so other farmers cannot apply?
               </p>
             </div>
-          </div>
 
-          {/* Action Buttons */}
-          <div className="flex items-center gap-2 pt-2">
-            <button
-              type="submit"
-              disabled={loading}
-              className="flex-1 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 text-white font-extrabold py-2.5 rounded-xl transition-colors cursor-pointer flex items-center justify-center gap-2 text-xs shadow-md"
-            >
-              {loading ? (
-                <>
-                  <span className="animate-spin h-3.5 w-3.5 border-2 border-white border-t-transparent rounded-full" />
-                  Confirming Schedule…
-                </>
-              ) : (
-                <>
-                  <CheckCircle2 className="h-4 w-4" />
-                  Confirm &amp; Schedule Call
-                </>
-              )}
-            </button>
-            <button
-              type="button"
-              onClick={onClose}
-              className="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-4 py-2.5 rounded-xl text-xs cursor-pointer transition-colors"
-            >
-              Cancel
-            </button>
+            {/* Two Choices */}
+            <div className="space-y-2.5 pt-1">
+              {/* Option A: Keep Post */}
+              <button
+                type="button"
+                onClick={handleKeepPost}
+                className="w-full text-left bg-white hover:bg-emerald-50/50 border-2 border-slate-200 hover:border-emerald-500 rounded-2xl p-3.5 transition-all group cursor-pointer shadow-sm flex items-start gap-3"
+              >
+                <div className="p-2 bg-emerald-100 group-hover:bg-emerald-200 text-emerald-700 rounded-xl shrink-0 transition-colors mt-0.5">
+                  <Sparkles className="h-4 w-4 text-emerald-700" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between">
+                    <span className="font-extrabold text-slate-900 text-xs group-hover:text-emerald-900">
+                      Keep Post Active
+                    </span>
+                    <span className="text-[9px] font-black bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full uppercase">
+                      Marketplace
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-500 font-normal mt-0.5 leading-snug">
+                    Leave loan listing published so other farmers can still discover it and submit requests.
+                  </p>
+                </div>
+              </button>
+
+              {/* Option B: Delete / Close Post */}
+              <button
+                type="button"
+                onClick={handleDeletePost}
+                disabled={isDeleting}
+                className="w-full text-left bg-white hover:bg-red-50/50 border-2 border-slate-200 hover:border-red-400 rounded-2xl p-3.5 transition-all group cursor-pointer shadow-sm flex items-start gap-3 disabled:opacity-60"
+              >
+                <div className="p-2 bg-red-100 group-hover:bg-red-200 text-red-600 rounded-xl shrink-0 transition-colors mt-0.5">
+                  <Trash2 className="h-4 w-4 text-red-600" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between">
+                    <span className="font-extrabold text-slate-900 text-xs group-hover:text-red-900">
+                      {isDeleting ? "Deleting Post…" : "Delete / Close Post"}
+                    </span>
+                    <span className="text-[9px] font-black bg-red-100 text-red-700 px-2 py-0.5 rounded-full uppercase">
+                      Remove Listing
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-500 font-normal mt-0.5 leading-snug">
+                    Remove from public listings so no more applications are accepted. (Your scheduled call with {booking.borrower?.userName || "the farmer"} is preserved).
+                  </p>
+                </div>
+              </button>
+            </div>
+
+            {/* Bottom Dismiss */}
+            <div className="pt-2 flex justify-end">
+              <button
+                type="button"
+                onClick={handleKeepPost}
+                className="text-slate-400 hover:text-slate-700 text-xs font-bold cursor-pointer transition-colors"
+              >
+                Done (Keep Active)
+              </button>
+            </div>
           </div>
-        </form>
+        ) : (
+          <form onSubmit={handleSubmitSchedule} className="p-5 space-y-4 text-xs font-semibold">
+            {/* Applicant Info Box */}
+            <div className="bg-slate-50 border border-slate-200 rounded-2xl p-3 flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-slate-900 flex items-center justify-center text-white text-xs font-black shrink-0">
+                {booking.borrower?.avatar ? (
+                  <img src={booking.borrower.avatar} alt={booking.borrower.userName} className="w-10 h-10 rounded-full object-cover" />
+                ) : (
+                  getInitials(booking.borrower?.userName || "Farmer")
+                )}
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="font-extrabold text-slate-900 text-sm truncate">
+                  {booking.borrower?.userName || "Farmer"}
+                </p>
+                <p className="text-slate-500 text-[11px] truncate">
+                  📍 {booking.borrower?.location || "Local"} • 🌱 {booking.borrower?.landDisplay || "Land details registered"}
+                </p>
+                {booking.borrower?.userPhone && (
+                  <p className="text-emerald-700 font-bold text-[11px] font-mono mt-0.5">
+                    📞 {booking.borrower.userPhone}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {/* Date Picker + Quick Chips */}
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <label className="text-[10px] font-black uppercase text-slate-500 tracking-wider flex items-center gap-1">
+                  <Calendar className="h-3 w-3 text-blue-600" /> Call Date *
+                </label>
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={() => handleQuickDate(0)}
+                    className="bg-slate-100 hover:bg-slate-200 text-slate-700 text-[9px] font-extrabold px-2 py-0.5 rounded-md cursor-pointer transition-colors"
+                  >
+                    Today
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleQuickDate(1)}
+                    className="bg-slate-100 hover:bg-slate-200 text-slate-700 text-[9px] font-extrabold px-2 py-0.5 rounded-md cursor-pointer transition-colors"
+                  >
+                    Tomorrow
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleQuickDate(2)}
+                    className="bg-slate-100 hover:bg-slate-200 text-slate-700 text-[9px] font-extrabold px-2 py-0.5 rounded-md cursor-pointer transition-colors"
+                  >
+                    In 2 Days
+                  </button>
+                </div>
+              </div>
+              <input
+                type="date"
+                required
+                value={date}
+                onChange={(e) => setDate(e.target.value)}
+                className="w-full bg-white border-2 border-slate-200 focus:border-slate-900 rounded-xl px-3 py-2 text-xs font-bold outline-none"
+              />
+            </div>
+
+            {/* Time Picker + Quick Chips */}
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <label className="text-[10px] font-black uppercase text-slate-500 tracking-wider flex items-center gap-1">
+                  <Clock className="h-3 w-3 text-emerald-600" /> Call Time *
+                </label>
+                <div className="flex items-center gap-1">
+                  {["10:00", "14:00", "17:30", "19:00"].map((t) => (
+                    <button
+                      key={t}
+                      type="button"
+                      onClick={() => handleQuickTime(t)}
+                      className={`text-[9px] font-extrabold px-2 py-0.5 rounded-md cursor-pointer transition-colors ${time === t ? "bg-emerald-600 text-white" : "bg-slate-100 hover:bg-slate-200 text-slate-700"
+                        }`}
+                    >
+                      {t === "10:00" ? "10 AM" : t === "14:00" ? "2 PM" : t === "17:30" ? "5:30 PM" : "7 PM"}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <input
+                type="time"
+                required
+                value={time}
+                onChange={(e) => setTime(e.target.value)}
+                className="w-full bg-white border-2 border-slate-200 focus:border-slate-900 rounded-xl px-3 py-2 text-xs font-bold outline-none"
+              />
+            </div>
+
+            {/* Optional Note */}
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-black uppercase text-slate-500 tracking-wider flex items-center gap-1">
+                <Tag className="h-3 w-3 text-amber-500" /> Note for Call (Optional)
+              </label>
+              <input
+                type="text"
+                placeholder="e.g. Discuss loan terms & documents required before payout"
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+                className="w-full bg-white border-2 border-slate-200 focus:border-slate-900 rounded-xl px-3 py-2 text-xs font-semibold outline-none"
+              />
+            </div>
+
+            {/* Call Connection Preview */}
+            <div className="bg-emerald-50/90 border border-emerald-300 rounded-xl p-3 flex items-start gap-2 text-emerald-900 text-[11px] leading-relaxed">
+              <PhoneCall className="h-4 w-4 text-emerald-600 shrink-0 mt-0.5" />
+              <div>
+                <p className="font-extrabold">Both of you will be scheduled to connect</p>
+                <p className="text-emerald-700 text-[10px] mt-0.5">
+                  The farmer will see this scheduled call time on their application ticket and can call you or receive your call.
+                </p>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex items-center gap-2 pt-2">
+              <button
+                type="submit"
+                disabled={isScheduling || loading}
+                className="flex-1 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 text-white font-extrabold py-2.5 rounded-xl transition-colors cursor-pointer flex items-center justify-center gap-2 text-xs shadow-md"
+              >
+                {isScheduling || loading ? (
+                  <>
+                    <span className="animate-spin h-3.5 w-3.5 border-2 border-white border-t-transparent rounded-full" />
+                    Confirming Schedule…
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle2 className="h-4 w-4" />
+                    Confirm &amp; Schedule Call
+                  </>
+                )}
+              </button>
+              <button
+                type="button"
+                onClick={onClose}
+                className="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-4 py-2.5 rounded-xl text-xs cursor-pointer transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </form>
+        )}
       </div>
     </div>
   );
@@ -969,7 +1167,7 @@ function FarmerLoanDetailModal({
           const crop = farmsData.find((f) => f.intended_crop)?.intended_crop;
           if (crop) setApplicantCrop(crop);
         }
-      } catch (_) {}
+      } catch (_) { }
     })();
   }, [currentUser, supabase]);
 
@@ -999,7 +1197,7 @@ function FarmerLoanDetailModal({
           } as EnrichedBooking);
           setAlreadyApplied(true);
         }
-      } catch (_) {}
+      } catch (_) { }
       setLoadingCheck(false);
     })();
   }, [currentUser, loan.id, isOwnLoan, supabase]);
@@ -1017,7 +1215,7 @@ function FarmerLoanDetailModal({
       if (error) throw error;
       if (data && data.length > 0) {
         const borrowerIds = Array.from(new Set(data.map((b: any) => b.borrower_id)));
-        
+
         const { data: userData } = await supabase
           .from("users")
           .select("id, userName, userPhone, userEmail, avatar, village, district, state")
@@ -1126,14 +1324,14 @@ function FarmerLoanDetailModal({
         prev.map((b) =>
           b.id === bookingId
             ? {
-                ...b,
-                status: fullStatus,
-                parsedStatus: "approved",
-                callDate: parsed.callDate,
-                callTime: parsed.callTime,
-                callNote: parsed.callNote,
-                scheduleText: parsed.scheduleText,
-              }
+              ...b,
+              status: fullStatus,
+              parsedStatus: "approved",
+              callDate: parsed.callDate,
+              callTime: parsed.callTime,
+              callNote: parsed.callNote,
+              scheduleText: parsed.scheduleText,
+            }
             : b
         )
       );
@@ -1153,16 +1351,53 @@ function FarmerLoanDetailModal({
               type: "text",
             },
           ]);
-        } catch (_) {}
+        } catch (_) { }
       }
 
-      setSchedulingBooking(null);
+      // Note: ScheduleCallModal stays open to ask whether to keep or delete post
       toast.success(`Application accepted! Call scheduled for ${parsed.scheduleText || callDate} 🎉`);
       if (onUpdated) onUpdated();
     } catch (err: any) {
       toast.error(err.message || "Failed to schedule call.");
+      throw err;
     } finally {
       setActionLoading(null);
+    }
+  };
+
+  const handleDeleteLoanPost = async (loanId: string) => {
+    try {
+      const existingCond = loan.conditions || "";
+      const newConditions = existingCond.includes("[CLOSED]")
+        ? existingCond
+        : `[CLOSED] ${existingCond}`.trim();
+      const { error } = await supabase
+        .from("farmer_loans")
+        .update({ conditions: newConditions })
+        .eq("id", loanId);
+      if (error) throw error;
+      toast.success("Loan post deleted from marketplace. Your scheduled meeting is saved!");
+      if (onUpdated) onUpdated();
+      onClose();
+    } catch (err: any) {
+      toast.error(err.message || "Failed to remove loan post.");
+    }
+  };
+
+  const handleRelistLoanPost = async (loanId: string) => {
+    try {
+      const existingCond = loan.conditions || "";
+      const newConditions = existingCond.replace(/\[CLOSED\]\s*/g, "").trim();
+      const { error } = await supabase
+        .from("farmer_loans")
+        .update({ conditions: newConditions })
+        .eq("id", loanId);
+      if (error) throw error;
+      toast.success("Loan post re-listed on marketplace! 🌾");
+      if (onUpdated) onUpdated();
+      onClose();
+    } catch (err: any) {
+      toast.error(err.message || "Failed to re-list loan post.");
     }
   };
 
@@ -1191,7 +1426,7 @@ function FarmerLoanDetailModal({
               type: "text",
             },
           ]);
-        } catch (_) {}
+        } catch (_) { }
       }
 
       toast.success("Application rejected.");
@@ -1448,13 +1683,12 @@ function FarmerLoanDetailModal({
                         </div>
 
                         <span
-                          className={`text-[9px] font-black px-2.5 py-0.5 rounded-full uppercase shrink-0 ${
-                            app.parsedStatus === "approved"
+                          className={`text-[9px] font-black px-2.5 py-0.5 rounded-full uppercase shrink-0 ${app.parsedStatus === "approved"
                               ? "bg-emerald-100 text-emerald-800 border border-emerald-300"
                               : app.parsedStatus === "rejected"
-                              ? "bg-red-100 text-red-700 border border-red-300"
-                              : "bg-amber-100 text-amber-800 border border-amber-300"
-                          }`}
+                                ? "bg-red-100 text-red-700 border border-red-300"
+                                : "bg-amber-100 text-amber-800 border border-amber-300"
+                            }`}
                         >
                           {app.parsedStatus}
                         </span>
@@ -1554,50 +1788,45 @@ function FarmerLoanDetailModal({
           {/* ── BORROWER VIEW: booking ticket + phone reveal + scheduled call time ── */}
           {!isOwnLoan && alreadyApplied && booking && (
             <div
-              className={`border-2 rounded-2xl p-4 space-y-3.5 ${
-                isApproved
+              className={`border-2 rounded-2xl p-4 space-y-3.5 ${isApproved
                   ? "border-emerald-500 bg-emerald-50/80"
                   : isRejected
-                  ? "border-red-300 bg-red-50/80"
-                  : "border-amber-300 bg-amber-50/80"
-              }`}
+                    ? "border-red-300 bg-red-50/80"
+                    : "border-amber-300 bg-amber-50/80"
+                }`}
             >
               <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-2.5">
                   <Ticket
-                    className={`h-5 w-5 shrink-0 ${
-                      isApproved ? "text-emerald-600" : isRejected ? "text-red-600" : "text-amber-600"
-                    }`}
+                    className={`h-5 w-5 shrink-0 ${isApproved ? "text-emerald-600" : isRejected ? "text-red-600" : "text-amber-600"
+                      }`}
                   />
                   <div>
                     <p
-                      className={`font-extrabold text-sm ${
-                        isApproved ? "text-emerald-900" : isRejected ? "text-red-900" : "text-amber-900"
-                      }`}
+                      className={`font-extrabold text-sm ${isApproved ? "text-emerald-900" : isRejected ? "text-red-900" : "text-amber-900"
+                        }`}
                     >
                       {isApproved
                         ? "Application Approved by Lender! 🎉"
                         : isRejected
-                        ? "Application Declined"
-                        : "Application Submitted • Awaiting Approval"}
+                          ? "Application Declined"
+                          : "Application Submitted • Awaiting Approval"}
                     </p>
                     <p
-                      className={`text-[10px] font-semibold ${
-                        isApproved ? "text-emerald-700" : isRejected ? "text-red-600" : "text-amber-700"
-                      }`}
+                      className={`text-[10px] font-semibold ${isApproved ? "text-emerald-700" : isRejected ? "text-red-600" : "text-amber-700"
+                        }`}
                     >
                       Ticket #{booking.id.slice(0, 8).toUpperCase()} • Applied {timeAgo(booking.created_at)}
                     </p>
                   </div>
                 </div>
                 <span
-                  className={`text-[9px] font-black px-2 py-0.5 rounded-full uppercase ${
-                    isApproved
+                  className={`text-[9px] font-black px-2 py-0.5 rounded-full uppercase ${isApproved
                       ? "bg-emerald-200 text-emerald-800"
                       : isRejected
-                      ? "bg-red-200 text-red-800"
-                      : "bg-amber-200 text-amber-800"
-                  }`}
+                        ? "bg-red-200 text-red-800"
+                        : "bg-amber-200 text-amber-800"
+                    }`}
                 >
                   {isApproved ? "Approved" : booking.parsedStatus}
                 </span>
@@ -1806,9 +2035,32 @@ function FarmerLoanDetailModal({
         {/* Actions Footer */}
         <div className="p-4 border-t border-slate-100 bg-slate-50/50 shrink-0">
           {isOwnLoan ? (
-            <p className="text-center text-xs text-slate-500 font-bold">
-              Review applicant details and schedule a connection call to finalize the loan agreement.
-            </p>
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 w-full">
+              <p className="text-xs text-slate-500 font-bold">
+                {loan.conditions?.includes("[CLOSED]")
+                  ? "This loan post is removed from the public marketplace."
+                  : "Review applicant details and schedule a call to finalize the loan agreement."}
+              </p>
+              <div className="flex items-center gap-2 shrink-0">
+                {loan.conditions?.includes("[CLOSED]") ? (
+                  <button
+                    type="button"
+                    onClick={() => handleRelistLoanPost(loan.id)}
+                    className="bg-slate-900 hover:bg-slate-800 text-white text-xs font-black px-3.5 py-2 rounded-xl transition-colors cursor-pointer flex items-center gap-1.5 shadow-sm"
+                  >
+                    <Sparkles className="h-3.5 w-3.5 text-amber-400" /> Re-list Post
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteLoanPost(loan.id)}
+                    className="bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 text-xs font-black px-3.5 py-2 rounded-xl transition-colors cursor-pointer flex items-center gap-1.5"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" /> Delete / Close Post
+                  </button>
+                )}
+              </div>
+            </div>
           ) : loadingCheck ? (
             <div className="flex justify-center py-2">
               <span className="animate-spin h-5 w-5 border-2 border-slate-400 border-t-transparent rounded-full" />
@@ -1817,15 +2069,14 @@ function FarmerLoanDetailModal({
             <div className="flex items-center justify-center gap-2 py-1">
               <CheckCircle2 className={`h-5 w-5 ${isApproved ? "text-emerald-600" : isRejected ? "text-red-500" : "text-amber-500"}`} />
               <span
-                className={`font-extrabold text-sm ${
-                  isApproved ? "text-emerald-700" : isRejected ? "text-red-700" : "text-amber-700"
-                }`}
+                className={`font-extrabold text-sm ${isApproved ? "text-emerald-700" : isRejected ? "text-red-700" : "text-amber-700"
+                  }`}
               >
                 {isApproved
                   ? "Approved — Connection call scheduled above"
                   : isRejected
-                  ? "Application Declined"
-                  : "Application Submitted — Awaiting Approval"}
+                    ? "Application Declined"
+                    : "Application Submitted — Awaiting Approval"}
               </span>
             </div>
           ) : !showApplyForm ? (
@@ -1851,8 +2102,12 @@ function FarmerLoanDetailModal({
         <ScheduleCallModal
           booking={schedulingBooking}
           loan={loan}
-          onClose={() => setSchedulingBooking(null)}
+          onClose={() => {
+            setSchedulingBooking(null);
+            if (onUpdated) onUpdated();
+          }}
           onConfirm={handleScheduleConfirm}
+          onDeletePost={handleDeleteLoanPost}
           loading={actionLoading === schedulingBooking.id}
         />
       )}
@@ -2267,14 +2522,14 @@ export default function SchemesPage() {
         prev.map((b) =>
           b.id === bookingId
             ? {
-                ...b,
-                status: fullStatus,
-                parsedStatus: "approved",
-                callDate: parsed.callDate,
-                callTime: parsed.callTime,
-                callNote: parsed.callNote,
-                scheduleText: parsed.scheduleText,
-              }
+              ...b,
+              status: fullStatus,
+              parsedStatus: "approved",
+              callDate: parsed.callDate,
+              callTime: parsed.callTime,
+              callNote: parsed.callNote,
+              scheduleText: parsed.scheduleText,
+            }
             : b
         )
       );
@@ -2297,15 +2552,68 @@ export default function SchemesPage() {
               type: "text",
             },
           ]);
-        } catch (_) {}
+        } catch (_) { }
       }
 
-      setMainSchedulingBooking(null);
+      // Note: ScheduleCallModal stays open to ask whether to keep or delete post
       toast.success(`Request accepted! Connection call scheduled for ${parsed.scheduleText || callDate} 🎉`);
     } catch (err: any) {
       toast.error(err.message || "Failed to schedule call.");
+      throw err;
     } finally {
       setActionLoading(null);
+    }
+  };
+
+  const handleMainDeleteLoanPost = async (loanId: string) => {
+    try {
+      const targetLoan = farmerLoans.find((l) => l.id === loanId);
+      const bookingsForLoan = receivedBookings.filter((b) => b.loan_id === loanId);
+      const hasConfirmedMeeting = bookingsForLoan.some((b) => b.parsedStatus === "approved");
+
+      if (!hasConfirmedMeeting) {
+        // Safe to completely delete the record from database
+        const { error } = await supabase
+          .from("farmer_loans")
+          .delete()
+          .eq("id", loanId);
+        if (error) {
+          const existingCond = targetLoan?.conditions || "";
+          const newConditions = existingCond.includes("[CLOSED]") ? existingCond : `[CLOSED] ${existingCond}`.trim();
+          await supabase.from("farmer_loans").update({ conditions: newConditions }).eq("id", loanId);
+        }
+        toast.success("Loan post deleted.");
+      } else {
+        // Delist from public marketplace so confirmed meetings remain accessible
+        const existingCond = targetLoan?.conditions || "";
+        const newConditions = existingCond.includes("[CLOSED]") ? existingCond : `[CLOSED] ${existingCond}`.trim();
+        const { error } = await supabase
+          .from("farmer_loans")
+          .update({ conditions: newConditions })
+          .eq("id", loanId);
+        if (error) throw error;
+        toast.success("Loan post removed from marketplace. Your scheduled meeting is saved!");
+      }
+      refreshAllFarmerData();
+    } catch (err: any) {
+      toast.error(err.message || "Failed to remove loan post.");
+    }
+  };
+
+  const handleMainRelistLoanPost = async (loanId: string) => {
+    try {
+      const targetLoan = farmerLoans.find((l) => l.id === loanId);
+      const existingCond = targetLoan?.conditions || "";
+      const newConditions = existingCond.replace(/\[CLOSED\]\s*/g, "").trim();
+      const { error } = await supabase
+        .from("farmer_loans")
+        .update({ conditions: newConditions })
+        .eq("id", loanId);
+      if (error) throw error;
+      toast.success("Loan post re-listed on marketplace! 🌾");
+      refreshAllFarmerData();
+    } catch (err: any) {
+      toast.error(err.message || "Failed to re-list loan post.");
     }
   };
 
@@ -2334,7 +2642,7 @@ export default function SchemesPage() {
               type: "text",
             },
           ]);
-        } catch (_) {}
+        } catch (_) { }
       }
 
       toast.success("Request rejected.");
@@ -2477,12 +2785,16 @@ export default function SchemesPage() {
     return farmerLoans.filter((l) => String(l.farmer_id) === String(user.id));
   }, [farmerLoans, user]);
 
+  const activeMarketplaceLoans = useMemo(() => {
+    return farmerLoans.filter((l) => !l.conditions?.includes("[CLOSED]") && !l.conditions?.includes("[DELETED]"));
+  }, [farmerLoans]);
+
   const pendingReceivedCount = useMemo(() => {
     return receivedBookings.filter((b) => b.parsedStatus === "pending").length;
   }, [receivedBookings]);
 
   const filteredFarmerLoans = useMemo(() => {
-    let base = farmerSubTab === "my-loans" ? myPostedLoans : farmerLoans;
+    let base = farmerSubTab === "my-loans" ? myPostedLoans : activeMarketplaceLoans;
     if (farmerSearch.trim()) {
       const q = farmerSearch.toLowerCase().trim();
       const amountQ = farmerSearch.replace(/[,₹s]/g, "");
@@ -2503,7 +2815,7 @@ export default function SchemesPage() {
       if (farmerSort === "interest") return a.interest_rate - b.interest_rate;
       return 0;
     });
-  }, [farmerLoans, myPostedLoans, farmerSearch, farmerSubTab, farmerSort]);
+  }, [activeMarketplaceLoans, myPostedLoans, farmerSearch, farmerSubTab, farmerSort]);
 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-12 font-inter">
@@ -2521,32 +2833,29 @@ export default function SchemesPage() {
       <div className="flex items-center gap-1 bg-slate-100 border-2 border-slate-900 rounded-2xl p-1 shadow-[3px_3px_0px_rgba(15,23,42,1)] w-full">
         <button
           onClick={() => setActiveTab("govt")}
-          className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl font-extrabold text-sm transition-all cursor-pointer ${
-            activeTab === "govt"
+          className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl font-extrabold text-sm transition-all cursor-pointer ${activeTab === "govt"
               ? "bg-slate-900 text-white shadow-[1px_1px_0px_rgba(255,255,255,0.1)]"
               : "text-slate-600 hover:text-slate-900"
-          }`}
+            }`}
         >
           <Building2 className="h-4 w-4" />
           Government Loans
         </button>
         <button
           onClick={() => setActiveTab("farmer")}
-          className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl font-extrabold text-sm transition-all cursor-pointer ${
-            activeTab === "farmer"
+          className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl font-extrabold text-sm transition-all cursor-pointer ${activeTab === "farmer"
               ? "bg-slate-900 text-white shadow-[1px_1px_0px_rgba(255,255,255,0.1)]"
               : "text-slate-600 hover:text-slate-900"
-          }`}
+            }`}
         >
           <Users className="h-4 w-4" />
           Farmer Loans
-          {farmerLoans.length > 0 && (
+          {activeMarketplaceLoans.length > 0 && (
             <span
-              className={`text-[10px] font-black px-1.5 py-0.5 rounded-full ${
-                activeTab === "farmer" ? "bg-white/20 text-white" : "bg-amber-100 text-amber-700"
-              }`}
+              className={`text-[10px] font-black px-1.5 py-0.5 rounded-full ${activeTab === "farmer" ? "bg-white/20 text-white" : "bg-amber-100 text-amber-700"
+                }`}
             >
-              {farmerLoans.length}
+              {activeMarketplaceLoans.length}
             </span>
           )}
           {pendingReceivedCount > 0 && (
@@ -2879,7 +3188,7 @@ export default function SchemesPage() {
                   {
                     key: "all",
                     label: "All Loans",
-                    count: farmerLoans.length,
+                    count: activeMarketplaceLoans.length,
                     activeBar: "bg-slate-900",
                     activeTxt: "text-slate-900",
                     activeBadge: "bg-slate-900 text-white",
@@ -2913,20 +3222,18 @@ export default function SchemesPage() {
                 <button
                   key={key}
                   onClick={() => setFarmerSubTab(key)}
-                  className={`relative flex items-center gap-2 px-4 py-3.5 font-extrabold text-sm transition-all cursor-pointer whitespace-nowrap ${
-                    farmerSubTab === key
+                  className={`relative flex items-center gap-2 px-4 py-3.5 font-extrabold text-sm transition-all cursor-pointer whitespace-nowrap ${farmerSubTab === key
                       ? `${activeTxt} bg-slate-50`
                       : "text-slate-400 hover:text-slate-700 hover:bg-slate-50/70"
-                  }`}
+                    }`}
                 >
                   {farmerSubTab === key && (
                     <span className={`absolute bottom-0 left-0 right-0 h-0.5 ${activeBar} rounded-t`} />
                   )}
                   {label}
                   <span
-                    className={`text-[10px] font-black px-1.5 py-0.5 rounded-full transition-colors ${
-                      farmerSubTab === key ? activeBadge : "bg-slate-100 text-slate-400"
-                    }`}
+                    className={`text-[10px] font-black px-1.5 py-0.5 rounded-full transition-colors ${farmerSubTab === key ? activeBadge : "bg-slate-100 text-slate-400"
+                      }`}
                   >
                     {count}
                   </span>
@@ -2999,6 +3306,8 @@ export default function SchemesPage() {
                       index={i}
                       isOwn={isOwn}
                       onClick={() => setSelectedFarmerLoan(loan)}
+                      onDelete={isOwn ? handleMainDeleteLoanPost : undefined}
+                      onRelist={isOwn ? handleMainRelistLoanPost : undefined}
                     />
                   );
                 })}
@@ -3049,6 +3358,8 @@ export default function SchemesPage() {
                       pendingCount={pReqs}
                       totalRequests={reqs.length}
                       onClick={() => setSelectedFarmerLoan(loan)}
+                      onDelete={handleMainDeleteLoanPost}
+                      onRelist={handleMainRelistLoanPost}
                     />
                   );
                 })}
@@ -3121,13 +3432,12 @@ export default function SchemesPage() {
                           ₹{Number(b.loan?.amount || 0).toLocaleString("en-IN")} ({b.loan?.duration || "N/A"})
                         </span>
                         <span
-                          className={`text-[10px] font-black px-3 py-1 rounded-full uppercase ${
-                            b.parsedStatus === "approved"
+                          className={`text-[10px] font-black px-3 py-1 rounded-full uppercase ${b.parsedStatus === "approved"
                               ? "bg-emerald-100 text-emerald-800 border border-emerald-300"
                               : b.parsedStatus === "rejected"
-                              ? "bg-red-100 text-red-700 border border-red-300"
-                              : "bg-amber-100 text-amber-800 border border-amber-300"
-                          }`}
+                                ? "bg-red-100 text-red-700 border border-red-300"
+                                : "bg-amber-100 text-amber-800 border border-amber-300"
+                            }`}
                         >
                           {b.parsedStatus}
                         </span>
@@ -3333,13 +3643,12 @@ export default function SchemesPage() {
                               {booking.loan?.farmer_name || "Lender Farmer"}
                             </p>
                             <span
-                              className={`text-[9px] font-black px-2 py-0.5 rounded-full uppercase ${
-                                booking.parsedStatus === "pending"
+                              className={`text-[9px] font-black px-2 py-0.5 rounded-full uppercase ${booking.parsedStatus === "pending"
                                   ? "bg-amber-100 text-amber-700 border border-amber-300"
                                   : isAppApproved
-                                  ? "bg-emerald-100 text-emerald-700 border border-emerald-300"
-                                  : "bg-red-100 text-red-600 border border-red-300"
-                              }`}
+                                    ? "bg-emerald-100 text-emerald-700 border border-emerald-300"
+                                    : "bg-red-100 text-red-600 border border-red-300"
+                                }`}
                             >
                               {isAppApproved ? "Approved" : booking.parsedStatus}
                             </span>
@@ -3580,8 +3889,12 @@ export default function SchemesPage() {
         <ScheduleCallModal
           booking={mainSchedulingBooking}
           loan={mainSchedulingBooking.loan}
-          onClose={() => setMainSchedulingBooking(null)}
+          onClose={() => {
+            setMainSchedulingBooking(null);
+            refreshAllFarmerData();
+          }}
           onConfirm={handleMainScheduleConfirm}
+          onDeletePost={handleMainDeleteLoanPost}
           loading={actionLoading === mainSchedulingBooking.id}
         />
       )}

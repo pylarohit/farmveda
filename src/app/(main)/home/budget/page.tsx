@@ -3,17 +3,17 @@
 import { useEffect, useState, useMemo } from "react";
 import { useUserData } from "@/context/UserDataProvider";
 import { createClient } from "@/lib/supabase/client";
-import { 
-  Plus, 
-  Trash2, 
-  Search, 
-  TrendingUp, 
-  TrendingDown, 
-  ArrowUpRight, 
-  ArrowDownLeft, 
-  Sliders, 
-  FileText, 
-  RefreshCw, 
+import {
+  Plus,
+  Trash2,
+  Search,
+  TrendingUp,
+  TrendingDown,
+  ArrowUpRight,
+  ArrowDownLeft,
+  Sliders,
+  FileText,
+  RefreshCw,
   Info,
   Calendar as CalendarIcon,
   AlertTriangle,
@@ -60,7 +60,7 @@ interface Transaction {
   crop: string;    // Paddy, Cotton, etc.
   date: string;
   description: string;
-  
+
   // Peer Debt/Loans Extension
   is_peer_debt?: boolean;
   peer_name?: string;
@@ -84,7 +84,7 @@ export default function BudgetPage() {
   const [farms, setFarms] = useState<any[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [farmBudgets, setFarmBudgets] = useState<Record<string, number>>({}); // farm_id -> budget
-  
+
   // App States
   const [loading, setLoading] = useState(true);
   const [dbError, setDbError] = useState<string | null>(null);
@@ -209,8 +209,8 @@ export default function BudgetPage() {
       user_id: user?.id,
       amount: Number(newAmount),
       type: newType,
-      category: isPeerDebt 
-        ? (newType === "income" ? "Peer Loan (Borrowed)" : "Peer Loan (Lent)") 
+      category: isPeerDebt
+        ? (newType === "income" ? "Peer Loan (Borrowed)" : "Peer Loan (Lent)")
         : newCategory,
       farm_id: newFarmId === "general" ? null : newFarmId,
       crop: resolvedCrop,
@@ -228,7 +228,7 @@ export default function BudgetPage() {
         .insert([newTxPayload]);
 
       if (error) throw error;
-      
+
       toast.success("Saved successfully!");
       loadBudgetsAndTransactions();
 
@@ -327,12 +327,12 @@ export default function BudgetPage() {
   const filteredTransactions = useMemo(() => {
     return transactions.filter((tx) => {
       const matchesFarm = selectedFarmId === "all" || tx.farm_id === selectedFarmId;
-      const matchesSearch = 
-        tx.description.toLowerCase().includes(searchQuery.toLowerCase()) || 
+      const matchesSearch =
+        tx.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
         tx.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
         tx.crop.toLowerCase().includes(searchQuery.toLowerCase()) ||
         getFarmDisplayName(tx.farm_id).toLowerCase().includes(searchQuery.toLowerCase());
-      
+
       const matchesType = typeFilter === "all" || tx.type === typeFilter;
       const matchesCategory = categoryFilter === "all" || tx.category === categoryFilter;
 
@@ -367,15 +367,15 @@ export default function BudgetPage() {
     const remainingBudget = Math.max(0, estimatedBudget - cropExpense);
     const budgetUsagePercent = estimatedBudget > 0 ? (cropExpense / estimatedBudget) * 100 : 0;
 
-    return { 
-      income, 
-      expense, 
+    return {
+      income,
+      expense,
       cropIncome,
       cropExpense,
-      netProfit, 
+      netProfit,
       estimatedBudget,
-      remainingBudget, 
-      budgetUsagePercent 
+      remainingBudget,
+      budgetUsagePercent
     };
   }, [filteredTransactions, selectedFarmId, farmBudgets]);
 
@@ -388,7 +388,7 @@ export default function BudgetPage() {
   const categoryExpenses = useMemo(() => {
     const sums: Record<string, number> = {};
     EXPENSE_CATEGORIES.forEach(cat => sums[cat] = 0);
-    
+
     filteredTransactions.forEach(tx => {
       if (tx.type === "expense") {
         if (sums[tx.category] !== undefined) {
@@ -405,7 +405,7 @@ export default function BudgetPage() {
     const activeExpenses = Object.entries(categoryExpenses)
       .map(([name, value]) => ({ name, value }))
       .filter(item => item.value > 0);
-    
+
     const total = activeExpenses.reduce((sum, item) => sum + item.value, 0);
     return { data: activeExpenses, total };
   }, [categoryExpenses]);
@@ -413,7 +413,7 @@ export default function BudgetPage() {
   const barChartData = useMemo(() => {
     const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
     const results: Record<string, { monthKey: string; name: string; income: number; expense: number }> = {};
-    
+
     const date = new Date();
     for (let i = 5; i >= 0; i--) {
       const d = new Date(date.getFullYear(), date.getMonth() - i, 1);
@@ -512,7 +512,7 @@ export default function BudgetPage() {
     const expensesVal = formatCurrency(stats.expense);
     const lentVal = formatCurrency(peerLoanStats.lent);
     const borrowedVal = formatCurrency(peerLoanStats.borrowed);
-    
+
     let text = "";
     let status = ""; // 'profit' | 'loss' | 'neutral'
     let title = "";
@@ -587,7 +587,7 @@ export default function BudgetPage() {
   const handleExportCSV = () => {
     let csvContent = "data:text/csv;charset=utf-8,";
     csvContent += "Date,Type,Category,Farm,Crop,Amount (INR),Description\n";
-    
+
     filteredTransactions.forEach(t => {
       const farmName = getFarmDisplayName(t.farm_id);
       csvContent += `${t.date},${t.type},"${t.category}","${farmName}","${t.crop}",${t.amount},"${t.description.replace(/"/g, '""')}"\n`;
@@ -649,7 +649,7 @@ export default function BudgetPage() {
           </div>
         </div>
 
-        <button 
+        <button
           onClick={loadBudgetsAndTransactions}
           className="mt-6 w-full flex items-center justify-center gap-2 bg-slate-900 hover:bg-slate-800 text-white font-extrabold py-3 px-6 rounded-2xl transition-all cursor-pointer shadow-md"
         >
@@ -671,7 +671,7 @@ export default function BudgetPage() {
         <p className="text-slate-500 text-sm mt-2 max-w-md mx-auto leading-relaxed">
           Please add a farm field first. Go to your dashboard and click **Add Farm Field** to get started. Once you register a farm field, you will be able to track budgets, expenses, and profits here.
         </p>
-        <button 
+        <button
           onClick={() => window.dispatchEvent(new Event('openAddFarmWizard'))}
           className="mt-6 bg-blue-600 hover:bg-blue-700 text-white font-extrabold py-3 px-8 rounded-2xl transition-all cursor-pointer shadow-md"
         >
@@ -683,25 +683,25 @@ export default function BudgetPage() {
 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 font-inter pb-12">
-      
+
       {/* HEADER SECTION */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-2">
         <div>
           <h1 className="text-3xl font-extrabold tracking-tight text-slate-900 font-sora flex items-center gap-2.5">
             Farm Budget & Expense Tracker
-            
+
           </h1>
-          
+
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <button 
+          <button
             onClick={handleExportCSV}
             className="flex items-center gap-2 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 px-4 py-2 rounded-xl text-sm font-semibold transition-colors cursor-pointer"
           >
             <Download className="h-4 w-4" />
             Export CSV
           </button>
-          <button 
+          <button
             onClick={handleOpenAddModal}
             className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl text-sm font-semibold transition-colors cursor-pointer shadow-md"
           >
@@ -715,11 +715,10 @@ export default function BudgetPage() {
       <div className="bg-slate-100/80 p-1.5 rounded-2xl flex flex-wrap gap-1.5 items-center border border-slate-200">
         <button
           onClick={() => setSelectedFarmId("all")}
-          className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-extrabold transition-all cursor-pointer ${
-            selectedFarmId === "all"
+          className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-extrabold transition-all cursor-pointer ${selectedFarmId === "all"
               ? "bg-slate-900 text-white shadow-sm"
               : "text-slate-600 hover:text-slate-950"
-          }`}
+            }`}
         >
           🌐 All Fields (Overall)
         </button>
@@ -730,18 +729,16 @@ export default function BudgetPage() {
             <button
               key={f.id}
               onClick={() => setSelectedFarmId(f.id)}
-              className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-extrabold transition-all flex items-center gap-1.5 cursor-pointer ${
-                selectedFarmId === f.id
+              className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-extrabold transition-all flex items-center gap-1.5 cursor-pointer ${selectedFarmId === f.id
                   ? "bg-slate-900 text-white shadow-sm"
                   : "text-slate-600 hover:text-slate-950 bg-white border border-slate-200"
-              }`}
+                }`}
             >
               <span>🌾 {f.field_name ? (f.field_name.includes("|||") ? f.field_name.split("|||")[0] : f.field_name) : "Field"}</span>
-              <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold uppercase ${
-                selectedFarmId === f.id 
-                  ? "bg-white/20 text-white" 
+              <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold uppercase ${selectedFarmId === f.id
+                  ? "bg-white/20 text-white"
                   : "bg-slate-100 text-slate-500"
-              }`}>
+                }`}>
                 {f.intended_crop || "Crop"}
               </span>
               {!hasBudget && (
@@ -760,18 +757,16 @@ export default function BudgetPage() {
             const isOwe = r.type === "income"; // You borrowed it
 
             return (
-              <div 
-                key={r.id} 
-                className={`border-2 border-slate-900 shadow-[3px_3px_0px_rgba(15,23,42,1)] rounded-2xl p-4 flex flex-col sm:flex-row items-center justify-between gap-4 transition-all ${
-                  isOverdue 
-                    ? "bg-red-50 border-red-900 text-red-955" 
+              <div
+                key={r.id}
+                className={`border-2 border-slate-900 shadow-[3px_3px_0px_rgba(15,23,42,1)] rounded-2xl p-4 flex flex-col sm:flex-row items-center justify-between gap-4 transition-all ${isOverdue
+                    ? "bg-red-50 border-red-900 text-red-955"
                     : "bg-amber-50 border-amber-900 text-amber-955"
-                }`}
+                  }`}
               >
                 <div className="flex items-center gap-3">
-                  <div className={`p-2 rounded-xl border border-slate-900 ${
-                    isOverdue ? "bg-red-100 text-red-700" : "bg-amber-100 text-amber-700"
-                  }`}>
+                  <div className={`p-2 rounded-xl border border-slate-900 ${isOverdue ? "bg-red-100 text-red-700" : "bg-amber-100 text-amber-700"
+                    }`}>
                     <AlertTriangle className="h-5 w-5" />
                   </div>
                   <div>
@@ -779,12 +774,12 @@ export default function BudgetPage() {
                       {isOwe ? "⚠️ Time to Pay Back (You Borrowed)" : "💰 Time to Collect (You Lent)"}
                     </h4>
                     <p className="text-xs mt-0.5 font-medium">
-                      {isOwe 
-                        ? `Pay back ${formatCurrency(r.amount)} to ${r.peerName} for crop ${r.crop}.` 
+                      {isOwe
+                        ? `Pay back ${formatCurrency(r.amount)} to ${r.peerName} for crop ${r.crop}.`
                         : `Collect ${formatCurrency(r.amount)} from ${r.peerName} for crop ${r.crop}.`}
                       <span className="font-extrabold mx-1">
-                        {isOverdue 
-                          ? `LATE BY ${Math.abs(r.daysLeft)} DAYS (Due date: ${r.dueDate})` 
+                        {isOverdue
+                          ? `LATE BY ${Math.abs(r.daysLeft)} DAYS (Due date: ${r.dueDate})`
                           : `Due in ${r.daysLeft} days (Due date: ${r.dueDate})`}
                       </span>
                     </p>
@@ -831,7 +826,7 @@ export default function BudgetPage() {
 
       {/* METRICS DASHBOARD CARDS */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        
+
         {/* Card 1: Budget Ceiling */}
         <div className="bg-white rounded-2xl border-2 border-slate-900 shadow-[3px_3px_0px_rgba(15,23,42,1)] p-5 relative hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0px_rgba(15,23,42,1)] transition-all">
           <div className="flex items-center justify-between">
@@ -839,7 +834,7 @@ export default function BudgetPage() {
               {selectedFarmId === "all" ? "Spending Limit" : "My Spending Limit"}
             </span>
             {selectedFarmId !== "all" && (
-              <button 
+              <button
                 onClick={handleOpenBudgetPrompt}
                 className="text-[10px] font-bold text-blue-600 hover:underline cursor-pointer"
               >
@@ -884,15 +879,15 @@ export default function BudgetPage() {
               {stats.estimatedBudget > 0 ? formatCurrency(stats.remainingBudget + peerLoanStats.lent) : "N/A"}
             </h3>
             <p className="text-slate-400 text-xs mt-1">
-              {peerLoanStats.lent > 0 
-                ? `Includes ${formatCurrency(peerLoanStats.lent)} lent out` 
+              {peerLoanStats.lent > 0
+                ? `Includes ${formatCurrency(peerLoanStats.lent)} lent out`
                 : "Operational breathing room"}
             </p>
           </div>
         </div>
 
         {/* Card 4: Net Farm Profit */}
-        <div 
+        <div
           onClick={() => setIsAnalysisOpen(true)}
           className="bg-white rounded-2xl border-2 border-slate-900 shadow-[3px_3px_0px_rgba(15,23,42,1)] p-5 hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0px_rgba(15,23,42,1)] transition-all cursor-pointer hover:border-blue-500 group"
         >
@@ -936,14 +931,13 @@ export default function BudgetPage() {
           </div>
 
           <div className="w-full bg-slate-100 rounded-full h-3 border border-slate-200 overflow-hidden">
-            <div 
-              className={`h-3 rounded-full transition-all duration-700 ${
-                stats.budgetUsagePercent >= 100 
-                  ? "bg-red-500" 
-                  : stats.budgetUsagePercent >= 80 
-                  ? "bg-amber-500" 
-                  : "bg-emerald-500"
-              }`}
+            <div
+              className={`h-3 rounded-full transition-all duration-700 ${stats.budgetUsagePercent >= 100
+                  ? "bg-red-500"
+                  : stats.budgetUsagePercent >= 80
+                    ? "bg-amber-500"
+                    : "bg-emerald-500"
+                }`}
               style={{ width: `${Math.min(stats.budgetUsagePercent, 100)}%` }}
             />
           </div>
@@ -952,7 +946,7 @@ export default function BudgetPage() {
 
       {/* CHARTS GRAPH CONTAINER */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        
+
         {/* SVG Cash Flow Bar Chart */}
         <div className="lg:col-span-2 bg-white border-2 border-slate-900 rounded-2xl shadow-[4px_4px_0px_rgba(15,23,42,1)] p-6">
           <div className="flex items-center justify-between mb-6">
@@ -988,9 +982,9 @@ export default function BudgetPage() {
               return (
                 <div key={data.monthKey} className="flex flex-col items-center flex-1 group z-10">
                   <div className="flex items-end gap-1.5 sm:gap-2 mb-2 relative h-40">
-                    
+
                     {/* Income */}
-                    <div 
+                    <div
                       style={{ height: incomeHeight }}
                       className="w-4 sm:w-6 bg-blue-50 hover:bg-blue-600 rounded-t-sm transition-all duration-500 border border-slate-900 bg-blue-500 relative group-hover:scale-y-[1.03]"
                     >
@@ -1000,7 +994,7 @@ export default function BudgetPage() {
                     </div>
 
                     {/* Expense */}
-                    <div 
+                    <div
                       style={{ height: expenseHeight }}
                       className="w-4 sm:w-6 bg-red-400 hover:bg-red-500 rounded-t-sm transition-all duration-500 border border-slate-900 relative group-hover:scale-y-[1.03]"
                     >
@@ -1078,13 +1072,12 @@ export default function BudgetPage() {
                 {donutSlices.map((slice, idx) => {
                   const colors = ["bg-indigo-500", "bg-emerald-500", "bg-amber-500", "bg-red-500", "bg-blue-500", "bg-pink-500", "bg-purple-500", "bg-teal-500", "bg-slate-500"];
                   return (
-                    <div 
+                    <div
                       key={slice.name}
                       onMouseEnter={() => setHoveredSlice(idx)}
                       onMouseLeave={() => setHoveredSlice(null)}
-                      className={`flex items-center gap-1.5 py-0.5 px-1.5 rounded transition-all truncate cursor-pointer ${
-                        hoveredSlice === idx ? "bg-slate-50 scale-105" : "hover:bg-slate-50"
-                      }`}
+                      className={`flex items-center gap-1.5 py-0.5 px-1.5 rounded transition-all truncate cursor-pointer ${hoveredSlice === idx ? "bg-slate-50 scale-105" : "hover:bg-slate-50"
+                        }`}
                     >
                       <span className={`h-2 w-2 rounded-full ${colors[idx % colors.length]}`} />
                       <span className="text-slate-600 text-[10px] truncate">{slice.name}</span>
@@ -1107,14 +1100,14 @@ export default function BudgetPage() {
       {/* MULTI-FIELD PERFORMANCE & PEER LOANS SECTIONS */}
       {selectedFarmId === "all" && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          
+
           {/* Multi-Field Cultivation Performance Table */}
           <div className="bg-white border-2 border-slate-900 rounded-2xl shadow-[4px_4px_0px_rgba(15,23,42,1)] p-6">
             <div className="mb-4">
               <h3 className="text-lg font-bold text-slate-900 font-sora">My Field Profits (Comparison)</h3>
               <p className="text-slate-500 text-xs">Compare what you spent and what you earned across all your different farm fields</p>
             </div>
-            
+
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse text-xs sm:text-sm">
                 <thead>
@@ -1149,13 +1142,12 @@ export default function BudgetPage() {
                         </td>
                         <td className="py-3.5 px-4 text-center">
                           {fp.budget > 0 ? (
-                            <span className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
-                              ratio >= 100 
-                                ? "bg-red-100 text-red-700" 
-                                : ratio >= 80 
-                                ? "bg-amber-100 text-amber-700" 
-                                : "bg-emerald-100 text-emerald-700"
-                            }`}>
+                            <span className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold ${ratio >= 100
+                                ? "bg-red-100 text-red-700"
+                                : ratio >= 80
+                                  ? "bg-amber-100 text-amber-700"
+                                  : "bg-emerald-100 text-emerald-700"
+                              }`}>
                               {ratio.toFixed(0)}% budget
                             </span>
                           ) : (
@@ -1169,27 +1161,26 @@ export default function BudgetPage() {
               </table>
             </div>
           </div>
-          
+
           {/* Outstanding Peer Loans & Debts Ledger */}
           <div className="bg-white border-2 border-slate-900 rounded-2xl shadow-[4px_4px_0px_rgba(15,23,42,1)] p-6 flex flex-col justify-between">
             <div>
               <h3 className="text-lg font-bold text-slate-900 font-sora">Udhaar (Lent / Borrowed Money)</h3>
               <p className="text-slate-500 text-xs mb-4">Keep track of money you borrowed from lenders/banks, or money you lent to workers/neighbors</p>
             </div>
-            
+
             <div className="space-y-4 max-h-[300px] overflow-y-auto pr-1 flex-1">
               {peerLoanStats.reminders.length > 0 ? (
                 peerLoanStats.reminders.map((loan) => {
                   const isOwe = loan.type === "income"; // income means we borrowed it
-                  
+
                   return (
                     <div key={loan.id} className="border border-slate-100 rounded-xl p-3.5 bg-slate-50 flex items-center justify-between gap-4">
                       <div className="space-y-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="font-bold text-slate-800 text-sm truncate">{loan.peerName}</span>
-                          <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full ${
-                            isOwe ? "bg-red-150 text-red-750 border border-red-200" : "bg-blue-150 text-blue-750 border border-blue-200"
-                          }`}>
+                          <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full ${isOwe ? "bg-red-150 text-red-750 border border-red-200" : "bg-blue-150 text-blue-750 border border-blue-200"
+                            }`}>
                             {isOwe ? "Owe to repay" : "Need to collect"}
                           </span>
                         </div>
@@ -1200,7 +1191,7 @@ export default function BudgetPage() {
                           {loan.daysLeft < 0 ? `Late by ${Math.abs(loan.daysLeft)} days` : `${loan.daysLeft} days remaining`}
                         </p>
                       </div>
-                      
+
                       <div className="flex flex-col items-end gap-2 shrink-0">
                         <span className={`text-sm font-black ${isOwe ? "text-red-600" : "text-slate-900"}`}>
                           {formatCurrency(loan.amount)}
@@ -1229,13 +1220,13 @@ export default function BudgetPage() {
 
       {/* FILTER & TRANSACTION LOG TABLE */}
       <div className="bg-white border-2 border-slate-900 rounded-2xl shadow-[4px_4px_0px_rgba(15,23,42,1)] overflow-hidden">
-        
+
         {/* Table Header Filter Bar */}
         <div className="p-4 sm:p-5 border-b border-slate-100 bg-slate-50/50 flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="relative flex-1 max-w-sm">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-            <input 
-              type="text" 
+            <input
+              type="text"
               placeholder="Search by notes, crop, or farm..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -1244,12 +1235,12 @@ export default function BudgetPage() {
           </div>
 
           <div className="flex flex-wrap items-center gap-3 text-xs font-bold text-slate-600">
-            
+
             {/* Type */}
             <div className="flex items-center gap-1.5">
               <span className="text-slate-400 uppercase text-[10px]">Type:</span>
-              <select 
-                value={typeFilter} 
+              <select
+                value={typeFilter}
                 onChange={(e: any) => setTypeFilter(e.target.value)}
                 className="bg-white border border-slate-200 px-3 py-1.5 rounded-lg focus:outline-none"
               >
@@ -1262,8 +1253,8 @@ export default function BudgetPage() {
             {/* Category */}
             <div className="flex items-center gap-1.5">
               <span className="text-slate-400 uppercase text-[10px]">Category:</span>
-              <select 
-                value={categoryFilter} 
+              <select
+                value={categoryFilter}
                 onChange={(e) => setCategoryFilter(e.target.value)}
                 className="bg-white border border-slate-200 px-3 py-1.5 rounded-lg focus:outline-none max-w-[150px]"
               >
@@ -1321,19 +1312,17 @@ export default function BudgetPage() {
                         </span>
                       </td>
                       <td className="py-3.5 px-6">
-                        <span className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
-                          isInc ? "bg-blue-50 text-blue-700" : "bg-red-50 text-red-700"
-                        }`}>
+                        <span className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold ${isInc ? "bg-blue-50 text-blue-700" : "bg-red-50 text-red-700"
+                          }`}>
                           {tx.category}
                         </span>
                       </td>
-                      <td className={`py-3.5 px-6 text-right font-black text-sm ${
-                        isInc ? "text-emerald-600" : "text-slate-900"
-                      }`}>
+                      <td className={`py-3.5 px-6 text-right font-black text-sm ${isInc ? "text-emerald-600" : "text-slate-900"
+                        }`}>
                         {isInc ? "+" : "-"}{formatCurrency(tx.amount)}
                       </td>
                       <td className="py-3.5 px-6 text-center">
-                        <button 
+                        <button
                           onClick={() => handleDeleteTransaction(tx.id)}
                           className="p-1 rounded text-red-400 hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
                         >
@@ -1349,7 +1338,7 @@ export default function BudgetPage() {
             <div className="flex flex-col items-center justify-center p-12 text-center text-slate-400">
               <FileText className="h-10 w-10 text-slate-200 mb-2" />
               <p className="text-sm font-semibold">No entries logged matching filters.</p>
-              <button 
+              <button
                 onClick={() => {
                   setSearchQuery("");
                   setTypeFilter("all");
@@ -1369,10 +1358,10 @@ export default function BudgetPage() {
       {isAddOpen && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center z-50 animate-in fade-in duration-200 p-4">
           <div className="bg-white border-2 border-slate-900 shadow-[6px_6px_0px_rgba(15,23,42,1)] rounded-2xl max-w-xl w-full overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col">
-            
+
             <div className="bg-slate-900 p-5 flex items-center justify-between text-white border-b-2 border-slate-900">
               <h3 className="text-lg font-black font-sora">Add Expense / Income</h3>
-              <button 
+              <button
                 onClick={() => setIsAddOpen(false)}
                 className="text-slate-400 hover:text-white font-bold cursor-pointer text-2xl leading-none"
               >
@@ -1385,31 +1374,29 @@ export default function BudgetPage() {
               <div>
                 <label className="text-sm font-bold uppercase tracking-wider text-slate-500 block mb-2">Is this an Expense or Income?</label>
                 <div className="grid grid-cols-2 gap-2 p-1.5 bg-slate-100 rounded-xl border border-slate-200">
-                  <button 
+                  <button
                     type="button"
                     onClick={() => {
                       setNewType("expense");
                       setNewCategory(EXPENSE_CATEGORIES[0]);
                     }}
-                    className={`py-3 rounded-lg text-sm font-extrabold transition-all cursor-pointer ${
-                      newType === "expense" 
-                        ? "bg-slate-900 text-white shadow-md" 
+                    className={`py-3 rounded-lg text-sm font-extrabold transition-all cursor-pointer ${newType === "expense"
+                        ? "bg-slate-900 text-white shadow-md"
                         : "text-slate-500 hover:text-slate-950 font-bold"
-                    }`}
+                      }`}
                   >
                     I Spent Money (Expense)
                   </button>
-                  <button 
+                  <button
                     type="button"
                     onClick={() => {
                       setNewType("income");
                       setNewCategory(INCOME_CATEGORIES[0]);
                     }}
-                    className={`py-3 rounded-lg text-sm font-extrabold transition-all cursor-pointer ${
-                      newType === "income" 
-                        ? "bg-slate-900 text-white shadow-md" 
+                    className={`py-3 rounded-lg text-sm font-extrabold transition-all cursor-pointer ${newType === "income"
+                        ? "bg-slate-900 text-white shadow-md"
                         : "text-slate-500 hover:text-slate-955 font-bold"
-                    }`}
+                      }`}
                   >
                     I Earned Money (Income)
                   </button>
@@ -1419,7 +1406,7 @@ export default function BudgetPage() {
               {/* Amount */}
               <div>
                 <label className="text-sm font-bold uppercase tracking-wider text-slate-500 block mb-2">Amount (₹)</label>
-                <input 
+                <input
                   type="number"
                   required
                   placeholder="Enter amount, e.g. 15000"
@@ -1432,8 +1419,8 @@ export default function BudgetPage() {
               {/* Link to Farm */}
               <div>
                 <label className="text-sm font-bold uppercase tracking-wider text-slate-500 block mb-2">Select Farm Field</label>
-                <select 
-                  value={newFarmId} 
+                <select
+                  value={newFarmId}
                   onChange={(e) => setNewFarmId(e.target.value)}
                   className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl text-base focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white font-bold text-slate-700 animate-in"
                 >
@@ -1450,7 +1437,7 @@ export default function BudgetPage() {
               {newFarmId === "general" && (
                 <div>
                   <label className="text-sm font-bold uppercase tracking-wider text-slate-500 block mb-2">Crop Name</label>
-                  <input 
+                  <input
                     type="text"
                     required
                     placeholder="Paddy, Cotton, Wheat..."
@@ -1465,8 +1452,8 @@ export default function BudgetPage() {
                 {/* Category */}
                 <div>
                   <label className="text-sm font-bold uppercase tracking-wider text-slate-500 block mb-2">Spent On (Category)</label>
-                  <select 
-                    value={newCategory} 
+                  <select
+                    value={newCategory}
                     onChange={(e) => setNewCategory(e.target.value)}
                     className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl text-base focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white font-bold text-slate-700"
                   >
@@ -1506,7 +1493,7 @@ export default function BudgetPage() {
 
               {/* PEER DEBT CHECKBOX TOGGLE */}
               <div className="flex items-center gap-2.5 pt-2">
-                <input 
+                <input
                   type="checkbox"
                   id="isPeerDebt"
                   checked={isPeerDebt}
@@ -1525,7 +1512,7 @@ export default function BudgetPage() {
                     <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block mb-1.5">
                       {newType === "income" ? "Who gave you money? (Lender Name)" : "Who did you give money? (Borrower Name)"}
                     </label>
-                    <input 
+                    <input
                       type="text"
                       required
                       placeholder="e.g. Ram Singh"
@@ -1567,7 +1554,7 @@ export default function BudgetPage() {
               {/* Description */}
               <div>
                 <label className="text-sm font-bold uppercase tracking-wider text-slate-500 block mb-2">Notes / Details (e.g. Bought 5 bags of Urea)</label>
-                <input 
+                <input
                   type="text"
                   placeholder="Notes..."
                   value={newDescription}
@@ -1577,14 +1564,14 @@ export default function BudgetPage() {
               </div>
 
               <div className="flex items-center gap-4 pt-4">
-                <button 
-                  type="button" 
+                <button
+                  type="button"
                   onClick={() => setIsAddOpen(false)}
                   className="flex-1 py-3.5 rounded-xl text-base font-extrabold border-2 border-slate-200 hover:bg-slate-50 hover:border-slate-300 transition-colors cursor-pointer text-slate-700 text-center animate-in"
                 >
                   Cancel
                 </button>
-                <button 
+                <button
                   type="submit"
                   className="flex-1 py-3.5 rounded-xl text-base font-extrabold bg-blue-600 hover:bg-blue-700 text-white transition-colors cursor-pointer text-center shadow-md border-2 border-blue-600"
                 >
@@ -1601,10 +1588,10 @@ export default function BudgetPage() {
       {isBudgetPromptOpen && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center z-50 animate-in fade-in duration-200 p-4">
           <div className="bg-white border-2 border-slate-900 shadow-[6px_6px_0px_rgba(15,23,42,1)] rounded-2xl max-w-sm w-full overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col">
-            
+
             <div className="bg-slate-900 p-4 flex items-center justify-between text-white">
               <h3 className="text-base font-extrabold font-sora">Set Spending Limit for this Farm</h3>
-              <button 
+              <button
                 onClick={() => setIsBudgetPromptOpen(false)}
                 className="text-slate-400 hover:text-white font-bold cursor-pointer text-lg leading-none"
               >
@@ -1626,7 +1613,7 @@ export default function BudgetPage() {
                 </label>
                 <div className="relative">
                   <span className="absolute left-3.5 top-1/2 -translate-y-1/2 font-black text-slate-400 text-sm">₹</span>
-                  <input 
+                  <input
                     type="number"
                     required
                     placeholder="e.g. 60000"
@@ -1641,14 +1628,14 @@ export default function BudgetPage() {
               </div>
 
               <div className="flex items-center gap-3 pt-2">
-                <button 
-                  type="button" 
+                <button
+                  type="button"
                   onClick={() => setIsBudgetPromptOpen(false)}
                   className="flex-1 py-2 rounded-xl text-sm font-semibold border border-slate-200 hover:bg-slate-50 transition-colors cursor-pointer text-slate-700 text-center"
                 >
                   Cancel
                 </button>
-                <button 
+                <button
                   type="submit"
                   className="flex-1 py-2 rounded-xl text-sm font-semibold bg-slate-900 hover:bg-slate-800 text-white transition-colors cursor-pointer text-center font-bold shadow-md"
                 >
@@ -1665,13 +1652,13 @@ export default function BudgetPage() {
       {isAnalysisOpen && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center z-50 animate-in fade-in duration-200 p-4">
           <div className="bg-white border-2 border-slate-900 shadow-[6px_6px_0px_rgba(15,23,42,1)] rounded-2xl max-w-lg w-full overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col">
-            
+
             <div className="bg-slate-900 p-5 flex items-center justify-between text-white border-b-2 border-slate-900">
               <h3 className="text-lg font-black font-sora flex items-center gap-2">
                 <Sparkles className="h-5 w-5 text-emerald-400" />
                 Smart Advisor Report
               </h3>
-              <button 
+              <button
                 onClick={() => setIsAnalysisOpen(false)}
                 className="text-slate-400 hover:text-white font-bold cursor-pointer text-2xl leading-none"
               >
@@ -1680,14 +1667,13 @@ export default function BudgetPage() {
             </div>
 
             <div className="p-6 space-y-4">
-              
-              <div className={`p-4 rounded-xl border-2 border-slate-900 ${
-                financialAnalysis.status === "profit" 
-                  ? "bg-emerald-50 text-emerald-950 border-emerald-900" 
-                  : financialAnalysis.status === "loss" 
-                  ? "bg-red-50 text-red-955 border-red-900" 
-                  : "bg-blue-50 text-blue-955 border-blue-900"
-              }`}>
+
+              <div className={`p-4 rounded-xl border-2 border-slate-900 ${financialAnalysis.status === "profit"
+                  ? "bg-emerald-50 text-emerald-950 border-emerald-900"
+                  : financialAnalysis.status === "loss"
+                    ? "bg-red-50 text-red-955 border-red-900"
+                    : "bg-blue-50 text-blue-955 border-blue-900"
+                }`}>
                 <h4 className="text-base font-black mb-2 flex items-center gap-1.5">
                   {financialAnalysis.status === "profit" ? "🎉" : "⚠️"}
                   {financialAnalysis.title}
@@ -1734,7 +1720,7 @@ export default function BudgetPage() {
                 </div>
               )}
 
-              <button 
+              <button
                 onClick={() => setIsAnalysisOpen(false)}
                 className="w-full py-3 bg-slate-900 hover:bg-slate-800 text-white font-extrabold text-sm rounded-xl transition-all cursor-pointer shadow-md text-center"
               >
