@@ -4,6 +4,7 @@ import "./globals.css";
 import { Toaster } from "react-hot-toast";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { UserDataProvider } from "@/context/UserDataProvider";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -60,6 +61,7 @@ export default function RootLayout({
           </TooltipProvider>
         </UserDataProvider>
         <Toaster />
+        <SpeedInsights />
       </body>
     </html>
   );
