@@ -5,7 +5,7 @@ import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { FarmSidebar } from "@/components/farm-sidebar";
 import { useUserData } from "@/context/UserDataProvider";
 import Image from "next/image";
-import { Bell } from "lucide-react";
+import { NotificationBell } from "@/components/NotificationBell";
 import { useParams } from "next/navigation";
 
 export default function FarmLayout({ children }: { children: ReactNode }) {
@@ -19,17 +19,15 @@ export default function FarmLayout({ children }: { children: ReactNode }) {
                 <FarmSidebar farmId={farmId} />
                 <div className="flex-1 flex flex-col min-w-0">
                     {/* Top Navigation Bar */}
-                    <header className="h-20 min-h-[65px] bg-white border-b border-slate-200 flex items-center px-6 sticky top-0 z-10 w-full justify-between" style={{ height: "80px" }}>
+                    <header className="h-20 min-h-[65px] bg-white border-b border-slate-200 flex items-center px-6 sticky top-0 z-20 w-full justify-between" style={{ height: "80px" }}>
                         <div className="flex items-center gap-4">
                             <SidebarTrigger className="text-slate-600 hover:text-slate-900 hover:bg-slate-100" />
                             <div className="h-4 w-[1px] bg-slate-200 hidden md:block" />
                             <span className="font-semibold text-slate-800 text-sm hidden md:block">Farm Dashboard</span>
                         </div>
                         <div className="flex items-center gap-4">
-                            {/* Notification Button */}
-                            <button className="p-2 rounded-full text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors cursor-pointer focus:outline-none">
-                                <Bell className="h-5 w-5" />
-                            </button>
+                            {/* Notification Bell with Dropdown */}
+                            <NotificationBell />
 
                             {user?.avatar ? (
                                 <Image
