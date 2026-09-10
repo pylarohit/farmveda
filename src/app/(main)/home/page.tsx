@@ -63,16 +63,16 @@ export default function HomePage() {
               <span className="font-extrabold">Welcome, </span>
               <span>{user?.userName || "Rohit Pyla"}</span>
             </h2>
-            <AnimatedButton
-              onClick={() => setIsAddFarmOpen(true)}
+              <AnimatedButton
+                onClick={() => setIsAddFarmOpen(true)}
               className="bg-white hover:bg-neutral-50 dark:bg-white dark:hover:bg-neutral-50 border border-neutral-250 dark:border-neutral-300 text-slate-950 dark:text-slate-950 text-sm font-normal rounded-xl px-10 py-2.5 shadow-sm flex items-center gap-3.5 cursor-pointer w-full md:w-auto justify-center"
-            >
-              <Sprout className="h-4 w-4 text-slate-900 stroke-[1.8]" />
-              <span>
-                <span className="font-bold">Add Farm</span>
-              </span>
-            </AnimatedButton>
-          </div>
+              >
+                <Sprout className="h-4 w-4 text-slate-900 stroke-[1.8]" />
+                <span>
+                  <span className="font-bold">Add Farm</span>
+                </span>
+              </AnimatedButton>
+            </div>
 
           <div className="w-full flex-1 flex flex-col gap-4">
             {farms.length > 0 ? (

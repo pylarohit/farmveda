@@ -190,10 +190,10 @@ export default function AuthPage() {
                         {/* vendor link to change the login page */}
                         <div className="w-full text-center">
                             <p
-                                onClick={() => router.push("/auth-mentor")}
+                                onClick={() => router.push("/vendor/login")}
                                 className="text-base font-semibold cursor-pointer text-[#475569]"
                             >
-                                Are you a Vendor ?{" "}
+                                Are you a Wholesale Vendor / Buyer ?{" "}
                                 <span className="text-[#009662] hover:text-[#008556] font-bold cursor-pointer hover:underline transition-colors">
                                     Click here!
                                 </span>
