@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { MoreVertical, ChevronRight, TrendingUp, TrendingDown, Minus } from "lucide-react";
+import { ChevronRight, TrendingUp, TrendingDown, Minus } from "lucide-react";
+import { useDynamicText, DynamicText } from "@/context/LanguageProvider";
 
 interface MandiRecord {
   state: string;
@@ -21,12 +22,17 @@ export function MarketPricesWidget() {
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
+  const textMarketPrices = useDynamicText("Market Prices");
+  const textAllMarketPrices = useDynamicText("All Market Prices");
+  const textViewAll = useDynamicText("View All");
+  const textNoData = useDynamicText("No price data available.");
+  const textQuintal = useDynamicText("Qtl");
+
   useEffect(() => {
     async function fetchData() {
       try {
         const res = await fetch("/api/market-prices");
         const json = await res.json();
-        console.log("Market prices response:", json);
         if (json && json.records) {
           setData(json.records);
         } else {
@@ -60,12 +66,12 @@ export function MarketPricesWidget() {
     <div className="w-full flex-shrink-0 bg-white rounded-3xl p-5 shadow-sm border border-slate-100 flex flex-col">
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
-        <h3 className="font-bold text-slate-800 text-lg font-sora">Market Prices</h3>
+        <h3 className="font-bold text-slate-800 text-lg font-sora">{textMarketPrices}</h3>
         <button 
           className="text-xs font-semibold text-slate-500 hover:text-slate-800 flex items-center gap-1 transition-colors cursor-pointer"
           onClick={() => setIsModalOpen(true)}
         >
-          View All <ChevronRight className="h-3.5 w-3.5" />
+          {textViewAll} <ChevronRight className="h-3.5 w-3.5" />
         </button>
       </div>
 
@@ -90,17 +96,17 @@ export function MarketPricesWidget() {
               <div className="flex-1 min-w-0 py-0.5">
                 {/* Title */}
                 <h4 className="font-bold text-slate-800 text-[13px] font-inter truncate pr-6">
-                  {item.commodity} - {item.market}
+                  <DynamicText text={item.commodity} /> - <DynamicText text={item.market} />
                 </h4>
                 
                 {/* Subtitle / Date */}
                 <div className="flex items-center gap-2 mt-1 text-[11px] text-slate-500 font-medium">
                   <span>{item.arrival_date}</span>
                   <span className="w-px h-2.5 bg-slate-300" />
-                  <span className="font-bold text-slate-700">₹{item.modal_price} / Qtl</span>
+                  <span className="font-bold text-slate-700">₹{item.modal_price} / {textQuintal}</span>
                 </div>
                 
-                {/* Icons row (simulating the avatars from design) */}
+                {/* Icons row */}
                 <div className="flex items-center gap-1.5 mt-2">
                   <div className="h-5 w-5 rounded-full bg-slate-100 border border-white shadow-sm flex items-center justify-center -mr-1 z-20">
                     <span className="text-[9px] font-medium">{item.commodity.charAt(0)}</span>
@@ -117,7 +123,7 @@ export function MarketPricesWidget() {
           ))
         ) : (
           <div className="text-center text-sm text-slate-500 py-10">
-            No price data available.
+            {textNoData}
           </div>
         )}
       </div>
@@ -128,7 +134,7 @@ export function MarketPricesWidget() {
         <div className="fixed inset-0 z-[100] bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setIsModalOpen(false)}>
           <div className="bg-white rounded-3xl p-6 w-full max-w-lg max-h-[85vh] flex flex-col shadow-2xl" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-6">
-              <h3 className="font-bold text-slate-800 text-xl font-sora">All Market Prices</h3>
+              <h3 className="font-bold text-slate-800 text-xl font-sora">{textAllMarketPrices}</h3>
               <button className="h-8 w-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:text-slate-800 hover:bg-slate-200 transition-colors cursor-pointer" onClick={() => setIsModalOpen(false)}>
                 ✕
               </button>
@@ -143,14 +149,14 @@ export function MarketPricesWidget() {
                   <div className="flex-1 min-w-0 py-0.5">
                     {/* Title */}
                     <h4 className="font-bold text-slate-800 text-[13px] font-inter truncate pr-6">
-                      {item.commodity} - {item.market}
+                      <DynamicText text={item.commodity} /> - <DynamicText text={item.market} />
                     </h4>
                     
                     {/* Subtitle / Date */}
                     <div className="flex items-center gap-2 mt-1 text-[11px] text-slate-500 font-medium">
                       <span>{item.arrival_date}</span>
                       <span className="w-px h-2.5 bg-slate-300" />
-                      <span className="font-bold text-slate-700">₹{item.modal_price} / Qtl</span>
+                      <span className="font-bold text-slate-700">₹{item.modal_price} / {textQuintal}</span>
                     </div>
                     
                     {/* Icons row */}

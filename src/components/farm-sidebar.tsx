@@ -36,15 +36,33 @@ import { useState } from "react";
 import { toast } from "react-hot-toast";
 import { Separator } from "@/components/ui/separator";
 import { Stars } from "lucide-react";
+import { useLanguage, useDynamicText } from "@/context/LanguageProvider";
+import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 
 export function FarmSidebar({ farmId }: { farmId: string }) {
   const pathname = usePathname();
   const { user, loading } = useUserData();
+  const { t } = useLanguage();
   const supabase = createClient();
   const router = useRouter();
   const [signoutLoading, setSignoutLoading] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [navigatingMain, setNavigatingMain] = useState(false);
+
+  const textBackToMain = useDynamicText("Back to Main");
+  const textReturning = useDynamicText("Returning...");
+  const textDashboard = t("nav", "dashboard");
+  const textCalendar = useDynamicText("Calendar");
+  const textAiTools = useDynamicText("AI Tools");
+  const textAiAssistant = t("user", "aiAssistant");
+  const textRoadMap = useDynamicText("Road Map");
+  const textDiseaseDetection = useDynamicText("Disease Detection");
+  const textWeather = useDynamicText("Weather");
+  const textDeleteFarm = useDynamicText("Delete Farm");
+  const textDeleteConfirm = useDynamicText("Are you sure you want to delete this farm? This action cannot be undone.");
+  const textDelete = useDynamicText("Delete");
+  const textDeleting = useDynamicText("Deleting..");
+  const textFarm = useDynamicText("Farm");
 
   async function signOut() {
     setSignoutLoading(true);
@@ -97,9 +115,9 @@ export function FarmSidebar({ farmId }: { farmId: string }) {
         </div>
 
         <div className="flex items-center justify-center mt-2.5 text-gray-300 text-sm font-sora font-semibold select-none">
-          <span>Farm&nbsp;</span>
+          <span>{textFarm}&nbsp;</span>
           <Highlighter action="underline" color="#f97316" padding={2} strokeWidth={2}>
-            <span className="text-gray-200">Dashboard</span>
+            <span className="text-gray-200">{textDashboard}</span>
           </Highlighter>
         </div>
       </SidebarHeader>
@@ -130,7 +148,7 @@ export function FarmSidebar({ farmId }: { farmId: string }) {
                   <LuArrowLeft className="text-xl relative z-10" />
                 )}
                 <span className="font-inter font-medium text-sm relative z-10">
-                  {navigatingMain ? "Returning..." : "Back to Main"}
+                  {navigatingMain ? textReturning : textBackToMain}
                 </span>
               </div>
             </SidebarMenuItem>
@@ -148,7 +166,7 @@ export function FarmSidebar({ farmId }: { farmId: string }) {
               <Link href={`/farm/${farmId}`} className="w-full">
                 <p className="flex items-center gap-3 font-medium font-inter text-base text-white tracking-wide">
                   <LuLayoutDashboard className="text-xl" />
-                  Dashboard
+                  {textDashboard}
                 </p>
               </Link>
             </SidebarMenuItem>
@@ -164,7 +182,7 @@ export function FarmSidebar({ farmId }: { farmId: string }) {
               <Link href={`/farm/${farmId}/calender`} className="w-full">
                 <p className="flex items-center gap-3 font-medium font-inter text-base text-white tracking-wide">
                   <LuCalendar className="text-xl" />
-                  Calender
+                  {textCalendar}
                 </p>
               </Link>
             </SidebarMenuItem>
@@ -174,7 +192,7 @@ export function FarmSidebar({ farmId }: { farmId: string }) {
               <div className="flex items-center justify-center gap-3 mb-4 mt-2 select-none">
                 <div className="h-[1px] bg-slate-800/80 flex-1" />
                 <span className="text-[12px] font-bold text-slate-400 font-inter tracking-wider">
-                  AI Tools
+                  {textAiTools}
                 </span>
                 <div className="h-[1px] bg-slate-800/80 flex-1" />
               </div>
@@ -191,7 +209,7 @@ export function FarmSidebar({ farmId }: { farmId: string }) {
               <Link href={`/farm/${farmId}/ai-assistant`} className="w-full">
                 <p className="flex items-center gap-3 font-medium font-inter text-base text-white tracking-wide">
                   <LuBot className="text-xl" />
-                  Ai Assistant
+                  {textAiAssistant}
                 </p>
               </Link>
             </SidebarMenuItem>
@@ -207,7 +225,7 @@ export function FarmSidebar({ farmId }: { farmId: string }) {
               <Link href={`/farm/${farmId}/roadmap`} className="w-full">
                 <p className="flex items-center gap-3 font-medium font-inter text-base text-white tracking-wide">
                   <LuMapPin className="text-xl" />
-                  Road Map
+                  {textRoadMap}
                 </p>
               </Link>
             </SidebarMenuItem>
@@ -223,7 +241,7 @@ export function FarmSidebar({ farmId }: { farmId: string }) {
               <Link href={`/farm/${farmId}/disease`} className="w-full">
                 <p className="flex items-center gap-3 font-medium font-inter text-base text-white tracking-wide">
                   <LuActivity className="text-xl" />
-                  Disease Detection
+                  {textDiseaseDetection}
                 </p>
               </Link>
             </SidebarMenuItem>
@@ -239,7 +257,7 @@ export function FarmSidebar({ farmId }: { farmId: string }) {
               <Link href={`/farm/${farmId}/weather`} className="w-full">
                 <p className="flex items-center gap-3 font-medium font-inter text-base text-white tracking-wide">
                   <LuCloudSunRain className="text-xl" />
-                  Weather
+                  {textWeather}
                 </p>
               </Link>
             </SidebarMenuItem>
@@ -263,22 +281,22 @@ export function FarmSidebar({ farmId }: { farmId: string }) {
                     <div className="p-1.5 bg-red-500/10 rounded-md group-hover:bg-red-500/20 transition-colors">
                       <LuTrash2 className="h-4 w-4" />
                     </div>
-                    <span>Delete Farm</span>
+                    <span>{textDeleteFarm}</span>
                   </div>
                 </Button>
               </AlertDialogTrigger>
               <AlertDialogContent className="bg-white text-slate-900">
                 <AlertDialogHeader>
                   <AlertDialogTitle className="font-semibold font-inter text-xl">
-                    Delete Farm
+                    {textDeleteFarm}
                   </AlertDialogTitle>
                   <AlertDialogDescription className="font-inter text-muted-foreground tracking-tight text-base">
-                    Are you sure you want to delete this farm? This action cannot be undone.
+                    {textDeleteConfirm}
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
                   <AlertDialogCancel className="font-inter cursor-pointer border border-slate-200">
-                    Cancel
+                    {t("user", "cancel")}
                   </AlertDialogCancel>
                   <AlertDialogAction
                     className="bg-red-500 text-white hover:bg-red-700 font-inter cursor-pointer"
@@ -287,12 +305,12 @@ export function FarmSidebar({ farmId }: { farmId: string }) {
                     {deleteLoading ? (
                       <>
                         <LuLoader className="animate-spin mr-2 inline" />
-                        <span>Deleting..</span>
+                        <span>{textDeleting}</span>
                       </>
                     ) : (
                       <>
                         <LuTrash2 className="mr-2 inline" />
-                        <span>Delete</span>
+                        <span>{textDelete}</span>
                       </>
                     )}
                   </AlertDialogAction>
@@ -347,7 +365,7 @@ export function FarmSidebar({ farmId }: { farmId: string }) {
                   className="justify-start gap-2 w-full font-roboto hover:bg-gray-50 rounded-none cursor-pointer text-slate-700"
                 >
                   <LuArrowUpRight className="text-[18px]" />
-                  Upgrade to Pro
+                  {t("user", "upgradePro")}
                 </Button>
 
                 <Separator />
@@ -359,12 +377,14 @@ export function FarmSidebar({ farmId }: { farmId: string }) {
                 >
                   <div className="flex gap-2 items-center">
                     <LuSettings className="text-[18px]" />
-                    Profile
+                    {t("user", "profile")}
                   </div>
                   <kbd className="text-xs text-muted-foreground bg-muted px-1 py-0.5 rounded">
                     Ctrl+Alt+P
                   </kbd>
                 </Button>
+
+                <LanguageSwitcher variant="sidebar" />
 
                 <Button
                   variant="ghost"
@@ -372,7 +392,7 @@ export function FarmSidebar({ farmId }: { farmId: string }) {
                   className="justify-start gap-2 w-full font-roboto hover:bg-gray-50 rounded-none cursor-pointer text-slate-700"
                 >
                   <LuCreditCard className="text-[18px]" />
-                  Billing
+                  {t("user", "billing")}
                 </Button>
 
                 <Button
@@ -381,7 +401,7 @@ export function FarmSidebar({ farmId }: { farmId: string }) {
                 >
                   <div className="flex gap-2 items-center">
                     <Stars className="text-[18px]" />
-                    Ai Assistant
+                    {t("user", "aiAssistant")}
                   </div>
                   <kbd className="text-xs text-muted-foreground bg-muted px-1 py-0.5 rounded">
                     Ctrl+Alt+D
@@ -398,7 +418,7 @@ export function FarmSidebar({ farmId }: { farmId: string }) {
                     >
                       <div className="flex gap-2 items-center font-inter">
                         <LuLogOut className="text-[18px]" />
-                        Logout
+                        {t("user", "logout")}
                       </div>
                       <kbd className="text-xs text-muted-foreground bg-muted px-1 py-0.5 rounded">
                         Ctrl+Alt+L
@@ -409,16 +429,15 @@ export function FarmSidebar({ farmId }: { farmId: string }) {
                   <AlertDialogContent className="bg-white text-slate-900">
                     <AlertDialogHeader>
                       <AlertDialogTitle className="font-semibold font-inter text-xl">
-                        Are you sure you want to logout?
+                        {t("user", "logoutConfirmTitle")}
                       </AlertDialogTitle>
                       <AlertDialogDescription className="font-inter text-muted-foreground tracking-tight text-base">
-                        This will end your session and you&apos;ll need to sign
-                        in again. Despite you can simply close the tab.
+                        {t("user", "logoutConfirmDesc")}
                       </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
                       <AlertDialogCancel className="font-inter cursor-pointer border border-slate-200">
-                        Cancel
+                        {t("user", "cancel")}
                       </AlertDialogCancel>
                       <AlertDialogAction
                         className="bg-blue-500 text-white hover:bg-blue-700 font-inter cursor-pointer"
@@ -427,12 +446,12 @@ export function FarmSidebar({ farmId }: { farmId: string }) {
                         {signoutLoading ? (
                           <>
                             <LuLoader className="animate-spin mr-2 inline" />
-                            <span>Signing Out..</span>
+                            <span>{t("user", "signingOut")}</span>
                           </>
                         ) : (
                           <>
                             <LuLogOut className="mr-2 inline" />
-                            <span>Logout</span>
+                            <span>{t("user", "logout")}</span>
                           </>
                         )}
                       </AlertDialogAction>

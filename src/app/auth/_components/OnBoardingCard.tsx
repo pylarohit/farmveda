@@ -28,10 +28,14 @@ import {
     ChevronRight,
     Loader2,
     Sprout,
+    Globe,
+    Check,
 } from "lucide-react";
 import { toast }        from "react-hot-toast";
 import { useRouter }    from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { useLanguage, SUPPORTED_LANGUAGES, LangCode } from "@/context/LanguageProvider";
+import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 
 // ─── Constants ─────────────────────────────────────────────────────────────────
 
@@ -61,7 +65,7 @@ type FormData = {
 function ReviewRow({ label, value }: { label: string; value: string }) {
     return (
         <div className="flex items-start justify-between py-2.5 border-b border-slate-100 last:border-0">
-            <span className="text-sm font-medium text-slate-500 min-w-[110px]">{label}</span>
+            <span className="text-sm font-medium text-slate-500 min-w-[120px]">{label}</span>
             <span className="text-sm font-semibold text-slate-800 text-right max-w-[60%] break-words">
                 {value || <span className="text-slate-300 font-normal">—</span>}
             </span>
@@ -72,6 +76,7 @@ function ReviewRow({ label, value }: { label: string; value: string }) {
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export function OnboardingCard() {
+    const { lang, setLang, t, langMeta } = useLanguage();
     const [step, setStep]       = useState<number>(1);
     const [loading, setLoading] = useState<boolean>(false);
     const supabase              = createClient();
@@ -97,10 +102,14 @@ export function OnboardingCard() {
                     name:  session.user.user_metadata?.full_name || "",
                     email: session.user.email || "",
                 }));
+                // If user metadata had language stored, restore it
+                if (session.user.user_metadata?.preferred_language) {
+                    setLang(session.user.user_metadata.preferred_language as LangCode);
+                }
             }
         };
         fetchSession();
-    }, [supabase]);
+    }, [supabase, setLang]);
 
     // Per-step validation
     const canProceed = useMemo(() => {
@@ -124,6 +133,7 @@ export function OnboardingCard() {
     function prevStep() { if (step > 1) setStep(s => s - 1); }
 
     async function finish() {
+        setLoading(true);
         setStep(4); // Show the OnboardCard loading state
         
         try {
@@ -150,8 +160,18 @@ export function OnboardingCard() {
 
             if (error) {
                 toast.error("Failed to save: " + error.message);
+                setLoading(false);
                 setStep(3); // Go back if error
                 return;
+            }
+
+            // Also persist preferred language in auth metadata
+            try {
+                await supabase.auth.updateUser({
+                    data: { preferred_language: lang }
+                });
+            } catch (err) {
+                console.warn("Could not save preferred language to user metadata", err);
             }
 
             localStorage.setItem("isOnboardingDone", "true");
@@ -165,6 +185,7 @@ export function OnboardingCard() {
         } catch (err) {
             console.error("Onboarding error:", err);
             toast.error("An unexpected error occurred.");
+            setLoading(false);
             setStep(3);
         }
     }
@@ -190,12 +211,15 @@ export function OnboardingCard() {
 
             {/* ── Header ── */}
             <CardHeader className="space-y-3">
-                <CardTitle className="text-balance text-xl font-bold text-slate-800 flex items-center gap-2">
-                    Let&apos;s set up your farming profile
-                    <Sprout className="h-5 w-5 text-emerald-500" />
-                </CardTitle>
+                <div className="flex items-center justify-between">
+                    <CardTitle className="text-balance text-xl font-bold text-slate-800 flex items-center gap-2">
+                        {t("onboarding", "title")}
+                        <Sprout className="h-5 w-5 text-emerald-500 shrink-0" />
+                    </CardTitle>
+                    <LanguageSwitcher variant="inline" />
+                </div>
                 <CardDescription className="text-pretty text-base font-medium text-slate-500">
-                    Complete the steps to get personalised crop insights and market data.
+                    {t("onboarding", "subtitle")}
                 </CardDescription>
                 <div className="w-full pt-1">
                     <StepIndicator current={step} onStepClick={s => setStep(s)} />
@@ -207,17 +231,63 @@ export function OnboardingCard() {
 
                 {/* ══ STEP 1: Profile ══ */}
                 {step === 1 && (
-                    <section className="space-y-6" aria-label="Basic information">
+                    <section className="space-y-6" aria-label={t("onboarding", "step1Title")}>
+                        {/* Language Selection Card in Step 1 */}
+                        <div className="p-4 rounded-2xl bg-emerald-50/70 border border-emerald-100 flex flex-col gap-3">
+                            <div className="flex items-center justify-between">
+                                <Label className="text-sm font-bold text-emerald-900 flex items-center gap-2">
+                                    <Globe className="h-4 w-4 text-emerald-600" />
+                                    {t("onboarding", "preferredLanguage")}
+                                </Label>
+                                <span className="text-xs bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full font-semibold">
+                                    {langMeta.flag} {langMeta.nativeName}
+                                </span>
+                            </div>
+
+                            {/* Language quick pills */}
+                            <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 pt-1">
+                                {SUPPORTED_LANGUAGES.map((l) => {
+                                    const isSelected = lang === l.code;
+                                    return (
+                                        <button
+                                            key={l.code}
+                                            type="button"
+                                            onClick={() => setLang(l.code as LangCode)}
+                                            className={cn(
+                                                "flex items-center justify-between gap-1.5 px-2.5 py-2 rounded-xl text-left border transition-all cursor-pointer",
+                                                isSelected
+                                                    ? "bg-emerald-600 text-white border-emerald-600 shadow-sm font-semibold"
+                                                    : "bg-white text-slate-700 border-slate-200 hover:border-emerald-300 hover:bg-emerald-50/50"
+                                            )}
+                                        >
+                                            <div className="flex items-center gap-1.5 min-w-0">
+                                                <span className="text-base leading-none">{l.flag}</span>
+                                                <div className="min-w-0">
+                                                    <p className="text-xs font-semibold leading-tight truncate">
+                                                        {l.nativeName}
+                                                    </p>
+                                                    <p className={cn("text-[10px] leading-tight truncate", isSelected ? "text-emerald-100" : "text-slate-400")}>
+                                                        {l.name}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            {isSelected && <Check className="h-3 w-3 shrink-0" />}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        </div>
+
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
 
                             {/* Full Name */}
                             <div className="space-y-2 md:col-span-2">
                                 <Label htmlFor="name" className="text-sm font-semibold text-slate-700">
-                                    Full Name
+                                    {t("onboarding", "fullName")}
                                 </Label>
                                 <Input
                                     id="name"
-                                    placeholder="e.g. Ramesh Kumar"
+                                    placeholder={t("onboarding", "fullNamePlaceholder")}
                                     value={data.name}
                                     onChange={e => setData({ ...data, name: e.target.value })}
                                     className="h-12 bg-emerald-50/40 border-slate-200 focus-visible:border-emerald-500 focus-visible:ring-emerald-100"
@@ -227,14 +297,14 @@ export function OnboardingCard() {
                             {/* Age */}
                             <div className="space-y-2">
                                 <Label htmlFor="age" className="text-sm font-semibold text-slate-700">
-                                    Age
+                                    {t("onboarding", "age")}
                                 </Label>
                                 <Input
                                     id="age"
                                     type="number"
                                     min={10}
                                     max={100}
-                                    placeholder="Age"
+                                    placeholder={t("onboarding", "agePlaceholder")}
                                     value={data.age}
                                     onChange={e => setData({ ...data, age: e.target.value })}
                                     className="h-12 bg-emerald-50/40 border-slate-200 focus-visible:border-emerald-500 focus-visible:ring-emerald-100"
@@ -244,13 +314,13 @@ export function OnboardingCard() {
                             {/* Phone */}
                             <div className="space-y-2">
                                 <Label htmlFor="phone" className="text-sm font-semibold text-slate-700">
-                                    Mobile Number
+                                    {t("onboarding", "mobileNumber")}
                                 </Label>
                                 <Input
                                     id="phone"
                                     type="tel"
                                     maxLength={10}
-                                    placeholder="Phone Number"
+                                    placeholder={t("onboarding", "phonePlaceholder")}
                                     value={data.phone}
                                     onChange={e => setData({ ...data, phone: e.target.value.replace(/\D/g, "") })}
                                     className="h-12 bg-emerald-50/40 border-slate-200 focus-visible:border-emerald-500 focus-visible:ring-emerald-100"
@@ -260,17 +330,17 @@ export function OnboardingCard() {
                             {/* Email */}
                             <div className="space-y-2 md:col-span-2">
                                 <Label htmlFor="email" className="text-sm font-semibold text-slate-700">
-                                    Email Address
+                                    {t("onboarding", "emailAddress")}
                                 </Label>
                                 <Input
                                     id="email"
                                     type="email"
-                                    placeholder="name@example.com"
+                                    placeholder={t("onboarding", "emailPlaceholder")}
                                     value={data.email}
                                     onChange={e => setData({ ...data, email: e.target.value })}
                                     className="h-12 bg-emerald-50/40 border-slate-200 focus-visible:border-emerald-500 focus-visible:ring-emerald-100"
                                 />
-                                <p className="text-xs text-slate-400">Pre-filled from your Google account.</p>
+                                <p className="text-xs text-slate-400">{t("onboarding", "emailPrefilled")}</p>
                             </div>
                         </div>
                     </section>
@@ -278,17 +348,17 @@ export function OnboardingCard() {
 
                 {/* ══ STEP 2: Address ══ */}
                 {step === 2 && (
-                    <section className="space-y-5" aria-label="Address">
+                    <section className="space-y-5" aria-label={t("onboarding", "step2Title")}>
 
                         {/* State */}
                         <div className="space-y-2">
-                            <Label className="text-sm font-semibold text-slate-700">State</Label>
+                            <Label className="text-sm font-semibold text-slate-700">{t("onboarding", "state")}</Label>
                             <Select
                                 value={data.state}
                                 onValueChange={v => setData({ ...data, state: v })}
                             >
                             <SelectTrigger className="!h-12 w-full bg-emerald-50/40 border-slate-200 focus:ring-emerald-100 focus:border-emerald-500">
-                                    <SelectValue placeholder="Select your state…" />
+                                    <SelectValue placeholder={t("onboarding", "statePlaceholder")} />
                                 </SelectTrigger>
                                 <SelectContent>
                                     {STATE_OPTIONS.map(s => (
@@ -301,11 +371,11 @@ export function OnboardingCard() {
                         {/* District */}
                         <div className="space-y-2">
                             <Label htmlFor="district" className="text-sm font-semibold text-slate-700">
-                                District
+                                {t("onboarding", "district")}
                             </Label>
                             <Input
                                 id="district"
-                                placeholder="e.g. Guntur"
+                                placeholder={t("onboarding", "districtPlaceholder")}
                                 value={data.district}
                                 onChange={e => setData({ ...data, district: e.target.value })}
                                 className="h-12 bg-emerald-50/40 border-slate-200 focus-visible:border-emerald-500 focus-visible:ring-emerald-100"
@@ -315,12 +385,12 @@ export function OnboardingCard() {
                         {/* Village / Town — optional */}
                         <div className="space-y-2">
                             <Label htmlFor="village" className="text-sm font-semibold text-slate-700">
-                                Village / Town
-                                <span className="ml-2 text-xs font-normal text-slate-400">— optional</span>
+                                {t("onboarding", "villageOptional")}
+                                <span className="ml-2 text-xs font-normal text-slate-400">{t("onboarding", "optional")}</span>
                             </Label>
                             <Input
                                 id="village"
-                                placeholder="e.g. Narasaraopet"
+                                placeholder={t("onboarding", "villagePlaceholder")}
                                 value={data.village}
                                 onChange={e => setData({ ...data, village: e.target.value })}
                                 className="h-12 bg-emerald-50/40 border-slate-200 focus-visible:border-emerald-500 focus-visible:ring-emerald-100"
@@ -331,38 +401,39 @@ export function OnboardingCard() {
 
                 {/* ══ STEP 3: Review ══ */}
                 {step === 3 && (
-                    <section className="space-y-5" aria-label="Review your information">
+                    <section className="space-y-5" aria-label={t("onboarding", "step3Title")}>
                         <div className="space-y-1">
                             <p className="text-sm font-semibold text-slate-700">
-                                Review your information
+                                {t("onboarding", "step3Title")}
                             </p>
                             <p className="text-xs text-slate-400">
-                                Please check all details before submitting. Click Back to edit anything.
+                                {t("onboarding", "step3Subtitle")}
                             </p>
                         </div>
 
                         {/* Profile */}
                         <div className="rounded-xl border border-slate-100 bg-slate-50/60 overflow-hidden">
                             <div className="px-4 py-2.5 bg-slate-100/70 border-b border-slate-100">
-                                <p className="text-[11px] font-black text-slate-500 uppercase tracking-widest">Profile</p>
+                                <p className="text-[11px] font-black text-slate-500 uppercase tracking-widest">{t("onboarding", "profileSection")}</p>
                             </div>
                             <div className="px-4">
-                                <ReviewRow label="Full Name" value={data.name} />
-                                <ReviewRow label="Age"       value={data.age ? `${data.age} years` : ""} />
-                                <ReviewRow label="Phone"     value={data.phone} />
-                                <ReviewRow label="Email"     value={data.email} />
+                                <ReviewRow label={t("onboarding", "preferredLanguage")} value={`${langMeta.flag} ${langMeta.nativeName} (${langMeta.name})`} />
+                                <ReviewRow label={t("onboarding", "fullName")} value={data.name} />
+                                <ReviewRow label={t("onboarding", "age")}       value={data.age ? `${data.age} ${t("onboarding", "yearsOld")}` : ""} />
+                                <ReviewRow label={t("onboarding", "mobileNumber")}     value={data.phone} />
+                                <ReviewRow label={t("onboarding", "emailAddress")}     value={data.email} />
                             </div>
                         </div>
 
                         {/* Address */}
                         <div className="rounded-xl border border-slate-100 bg-slate-50/60 overflow-hidden">
                             <div className="px-4 py-2.5 bg-slate-100/70 border-b border-slate-100">
-                                <p className="text-[11px] font-black text-slate-500 uppercase tracking-widest">Address</p>
+                                <p className="text-[11px] font-black text-slate-500 uppercase tracking-widest">{t("onboarding", "addressSection")}</p>
                             </div>
                             <div className="px-4">
-                                <ReviewRow label="State"        value={data.state}    />
-                                <ReviewRow label="District"     value={data.district} />
-                                <ReviewRow label="Village/Town" value={data.village || "Not provided"} />
+                                <ReviewRow label={t("onboarding", "state")}        value={data.state}    />
+                                <ReviewRow label={t("onboarding", "district")}     value={data.district} />
+                                <ReviewRow label={t("onboarding", "villageReview")} value={data.village || t("onboarding", "notProvided")} />
                             </div>
                         </div>
                     </section>
@@ -371,7 +442,7 @@ export function OnboardingCard() {
 
             {/* ── Footer ── */}
             <CardFooter className="flex items-center justify-between gap-2 mt-2">
-                <div className="text-sm text-muted-foreground">Step {step} of 3</div>
+                <div className="text-sm text-muted-foreground">{t("onboarding", "stepOf", { current: step, total: 3 })}</div>
 
                 <div className="flex items-center gap-2">
                     <Button
@@ -380,7 +451,7 @@ export function OnboardingCard() {
                         disabled={step === 1 || loading}
                         className="h-11 px-6 text-base cursor-pointer"
                     >
-                        <ChevronLeft className="mr-1.5 h-4 w-4" /> Back
+                        <ChevronLeft className="mr-1.5 h-4 w-4" /> {t("onboarding", "back")}
                     </Button>
 
                     {step < 3 ? (
@@ -389,7 +460,7 @@ export function OnboardingCard() {
                             disabled={!canProceed}
                             className="h-11 px-6 text-base bg-emerald-600 hover:bg-emerald-700 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                            Continue <ChevronRight className="ml-1.5 h-4 w-4" />
+                            {t("onboarding", "continue")} <ChevronRight className="ml-1.5 h-4 w-4" />
                         </Button>
                     ) : (
                         <Button
@@ -398,9 +469,9 @@ export function OnboardingCard() {
                             className="h-11 px-6 text-base bg-emerald-600 hover:bg-emerald-700 cursor-pointer disabled:opacity-50"
                         >
                             {loading ? (
-                                <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving…</>
+                                <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> {t("onboarding", "saving")}</>
                             ) : (
-                                <><Sprout className="mr-2 h-4 w-4" /> Complete Setup</>
+                                <><Sprout className="mr-2 h-4 w-4" /> {t("onboarding", "completeSetup")}</>
                             )}
                         </Button>
                     )}

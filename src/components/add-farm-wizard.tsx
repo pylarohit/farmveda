@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 import { LuLoader } from "react-icons/lu";
 import CardQuizInsights from "./CardQuizInsights";
+import { DynamicText, useDynamicText } from "@/context/LanguageProvider";
 
 interface AddFarmWizardProps {
   onClose: () => void;
@@ -87,6 +88,19 @@ export function AddFarmWizard({ onClose, onSuccess }: AddFarmWizardProps) {
   const [started, setStarted] = useState(false);
   const [finished, setFinished] = useState(false);
   const [answers, setAnswers] = useState<Record<string, string>>({});
+
+  const textSmartCrop = useDynamicText("Smart crop planning starts here.");
+  const textAddNewFarm = useDynamicText("Add a New Farm");
+  const textWizardDesc = useDynamicText("We'll ask you 5 quick questions about your field's soil, size, and weather to provide you with expert AI recommendations for your next harvest.");
+  const textStartAssessment = useDynamicText("Start Assessment");
+  const textCancel = useDynamicText("Cancel");
+  const textStep = useDynamicText("Step");
+  const textOf = useDynamicText("of");
+  const textBack = useDynamicText("Back");
+  const textContinue = useDynamicText("Continue");
+  const textCompleteAssessment = useDynamicText("Complete Assessment");
+  const textProcessing = useDynamicText("Processing Data");
+  const textGetResults = useDynamicText("Get Results");
 
   const currentQ = allQuestions[step];
 
@@ -218,13 +232,13 @@ export function AddFarmWizard({ onClose, onSuccess }: AddFarmWizardProps) {
           {loading ? (
             <div className="flex flex-col items-center justify-center text-emerald-600">
               <LuLoader className="animate-spin text-4xl mb-4" />
-              <span className="font-semibold tracking-wide uppercase text-sm">Processing Data</span>
+              <span className="font-semibold tracking-wide uppercase text-sm">{textProcessing}</span>
             </div>
           ) : (
             <div className="flex gap-4 justify-center">
-              <Button variant="outline" onClick={() => setFinished(false)} className="h-12 px-6 rounded-xl">Back</Button>
+              <Button variant="outline" onClick={() => setFinished(false)} className="h-12 px-6 rounded-xl">{textBack}</Button>
               <Button onClick={handleSubmit} className="bg-emerald-600 hover:bg-emerald-700 text-white h-12 px-8 rounded-xl font-semibold shadow-md">
-                Get Results
+                {textGetResults}
               </Button>
             </div>
           )}
@@ -250,7 +264,7 @@ export function AddFarmWizard({ onClose, onSuccess }: AddFarmWizardProps) {
             <Sprout className="h-24 w-24 mx-auto mb-6 text-emerald-100" strokeWidth={1.5} />
             <h1 className="text-4xl md:text-5xl font-black font-sora tracking-tight mb-4">Farmveda AI</h1>
             <p className="text-emerald-100 font-inter text-lg md:text-xl font-medium max-w-sm mx-auto">
-              Smart crop planning starts here.
+              {textSmartCrop}
             </p>
           </div>
         </div>
@@ -258,15 +272,15 @@ export function AddFarmWizard({ onClose, onSuccess }: AddFarmWizardProps) {
         {/* Right Content Area */}
         <div className="w-full md:w-1/2 h-full flex items-center justify-center p-8 md:p-16 bg-white">
           <div className="max-w-md w-full">
-            <h2 className="text-3xl font-bold font-sora text-slate-900 mb-4">Add a New Farm</h2>
+            <h2 className="text-3xl font-bold font-sora text-slate-900 mb-4">{textAddNewFarm}</h2>
             <p className="text-slate-600 font-inter text-lg mb-10 leading-relaxed">
-              We'll ask you 5 quick questions about your field's soil, size, and weather to provide you with expert AI recommendations for your next harvest.
+              {textWizardDesc}
             </p>
             <Button
               onClick={() => setStarted(true)}
               className="w-full bg-emerald-600 hover:bg-emerald-700 text-white h-14 rounded-xl text-lg font-semibold shadow-lg shadow-emerald-600/20 group"
             >
-              Start Assessment 
+              {textStartAssessment} 
               <ChevronRight className="ml-2 group-hover:translate-x-1 transition-transform" />
             </Button>
           </div>
@@ -288,10 +302,10 @@ export function AddFarmWizard({ onClose, onSuccess }: AddFarmWizardProps) {
       {/* Header / Progress */}
       <div className="w-full p-6 md:px-12 md:py-8 flex items-center justify-between border-b border-slate-100">
         <Button variant="ghost" onClick={onClose} className="text-slate-500 font-medium font-inter">
-          Cancel
+          {textCancel}
         </Button>
         <div className="text-sm font-semibold text-slate-400 tracking-widest uppercase">
-          Step {step + 1} of {allQuestions.length}
+          {textStep} {step + 1} {textOf} {allQuestions.length}
         </div>
         <div className="w-32 h-2 bg-slate-100 rounded-full overflow-hidden">
           <motion.div 
@@ -317,10 +331,10 @@ export function AddFarmWizard({ onClose, onSuccess }: AddFarmWizardProps) {
               className="w-full"
             >
               <h2 className="text-3xl md:text-4xl font-bold font-sora text-slate-800 mb-3 text-center">
-                {currentQ.title}
+                <DynamicText text={currentQ.title} />
               </h2>
               <p className="text-slate-500 font-inter text-lg text-center mb-10">
-                {currentQ.subtitle}
+                <DynamicText text={currentQ.subtitle} />
               </p>
 
               {/* Input Types */}
@@ -375,7 +389,7 @@ export function AddFarmWizard({ onClose, onSuccess }: AddFarmWizardProps) {
                          <Droplets size={20} />}
                       </div>
                       <span className={`font-sora font-semibold text-lg ${answers[currentQ.section] === opt ? "text-emerald-700" : "text-slate-700"}`}>
-                        {opt}
+                        <DynamicText text={opt} />
                       </span>
                     </button>
                   ))}
@@ -394,7 +408,7 @@ export function AddFarmWizard({ onClose, onSuccess }: AddFarmWizardProps) {
           disabled={step === 0}
           className="text-slate-500 font-inter h-14 px-6 text-lg hover:bg-slate-100 rounded-xl"
         >
-          <ChevronLeft className="mr-2" /> Back
+          <ChevronLeft className="mr-2" /> {textBack}
         </Button>
 
         {step < allQuestions.length - 1 ? (
@@ -403,7 +417,7 @@ export function AddFarmWizard({ onClose, onSuccess }: AddFarmWizardProps) {
             disabled={isNextDisabled}
             className="bg-emerald-600 hover:bg-emerald-700 text-white h-14 px-10 text-lg rounded-xl shadow-md font-semibold"
           >
-            Continue <ChevronRight className="ml-2" />
+            {textContinue} <ChevronRight className="ml-2" />
           </Button>
         ) : (
           <Button
@@ -411,7 +425,7 @@ export function AddFarmWizard({ onClose, onSuccess }: AddFarmWizardProps) {
             disabled={isNextDisabled}
             className="bg-emerald-600 hover:bg-emerald-700 text-white h-14 px-10 text-lg rounded-xl shadow-md font-semibold shadow-emerald-600/30"
           >
-            Complete Assessment <CheckCircle2 className="ml-2" />
+            {textCompleteAssessment} <CheckCircle2 className="ml-2" />
           </Button>
         )}
       </div>

@@ -10,10 +10,13 @@ import { WeatherWidget } from "@/components/weather-widget";
 import { NewsWidget } from "@/components/news-widget";
 import { AddFarmWizard } from "@/components/add-farm-wizard";
 import { createClient } from "@/lib/supabase/client";
+import { useLanguage, useDynamicText, DynamicText } from "@/context/LanguageProvider";
 import Link from "next/link";
 
 export default function HomePage() {
   const { user } = useUserData();
+  const { t } = useLanguage();
+  const textAcres = useDynamicText("Acres");
   const supabase = createClient();
   const [isAddFarmOpen, setIsAddFarmOpen] = useState(false);
   const [farms, setFarms] = useState<any[]>([]);
@@ -60,7 +63,7 @@ export default function HomePage() {
           {/* Welcome Greeting Row */}
           <div className="flex flex-col md:flex-row items-center justify-between w-full p-4 pl-0 py-2 select-none gap-4">
             <h2 className="text-2xl tracking-tight text-black dark:text-white font-sora text-left w-full md:w-auto font-normal">
-              <span className="font-extrabold">Welcome, </span>
+              <span className="font-extrabold">{t("home", "welcome")}{" "}</span>
               <span>{user?.userName || "Rohit Pyla"}</span>
             </h2>
               <AnimatedButton
@@ -69,7 +72,7 @@ export default function HomePage() {
               >
                 <Sprout className="h-4 w-4 text-slate-900 stroke-[1.8]" />
                 <span>
-                  <span className="font-bold">Add Farm</span>
+                  <span className="font-bold">{t("home", "addFarm")}</span>
                 </span>
               </AnimatedButton>
             </div>
@@ -88,22 +91,22 @@ export default function HomePage() {
                       <div className="flex justify-between items-start">
                         <div className="bg-slate-900 text-white text-[10px] font-semibold px-3 py-1 rounded-full font-inter tracking-wide shadow-sm flex items-center gap-1.5">
                           <MapPin size={12} className="text-emerald-400" />
-                          Area: {farm.area_size ? `${farm.area_size} Acres` : 'N/A'}
+                          {t("home", "area")}: {farm.area_size ? `${farm.area_size} ${textAcres}` : 'N/A'}
                         </div>
                         <Bookmark className="h-5 w-5 text-slate-900 fill-slate-900" />
                       </div>
 
                       {/* Middle: Crop */}
                       <div className="mt-4 flex-1 pr-2">
-                        <div className="text-[10px] uppercase font-bold tracking-widest text-slate-800/60 mb-0.5">Crop</div>
+                        <div className="text-[10px] uppercase font-bold tracking-widest text-slate-800/60 mb-0.5">{t("home", "crop")}</div>
                         <h3 className="font-black text-slate-900 font-sora text-3xl leading-tight">
-                          {farm.intended_crop || 'N/A'}
+                          <DynamicText text={farm.intended_crop || 'N/A'} />
                         </h3>
                       </div>
 
                       {/* Middle: Address */}
                       <div className="mt-3 flex-1">
-                        <div className="text-[9px] uppercase font-bold tracking-widest text-slate-800/60 mb-0.5">Address</div>
+                        <div className="text-[9px] uppercase font-bold tracking-widest text-slate-800/60 mb-0.5">{t("home", "address")}</div>
                         <p className="font-bold text-slate-900 font-inter text-xs leading-snug line-clamp-2 pr-2">
                           {farm.field_name ? (farm.field_name.includes("|||") ? (farm.field_name.split("|||")[1] || "N/A") : farm.field_name) : "N/A"}
                         </p>
@@ -112,7 +115,7 @@ export default function HomePage() {
                       {/* Bottom: View Button */}
                       <div className="mt-4 pt-4 border-t border-slate-900/10 flex">
                         <Link href={`/farm/${farm.id}`} className="w-full flex justify-center items-center bg-[#FF5A5F] hover:bg-[#FF3b40] text-white text-sm font-black px-4 py-2.5 rounded-xl transition-colors font-inter shadow-[2px_2px_0px_0px_rgba(15,23,42,1)] border-2 border-slate-900 active:shadow-none active:translate-y-[2px] active:translate-x-[2px] uppercase tracking-wide">
-                          View Farm
+                          {t("home", "viewFarm")}
                         </Link>
                       </div>
                     </div>
@@ -128,7 +131,7 @@ export default function HomePage() {
                     <Plus className="h-6 w-6 text-slate-500 group-hover:text-slate-700 transition-colors" />
                   </div>
                   <span className="font-bold text-slate-500 group-hover:text-slate-700 font-sora tracking-wide transition-colors">
-                    Add New Farm
+                    {t("home", "addNewFarm")}
                   </span>
                 </button>
               </div>
@@ -141,7 +144,7 @@ export default function HomePage() {
                   <Plus className="h-6 w-6 text-slate-500 group-hover:text-slate-700 transition-colors" />
                 </div>
                 <span className="font-semibold text-slate-500 group-hover:text-slate-700 font-inter tracking-wide transition-colors">
-                  ADD FARMS
+                  {t("home", "addFarms")}
                 </span>
               </button>
             )}
@@ -162,7 +165,7 @@ export default function HomePage() {
       {/* ── SEPARATOR & NEWS SECTION ───────────────────────────────────── */}
       <div className="mt-12 mb-6 w-full">
         <hr className="border-slate-200 mb-8" />
-        <h2 className="text-2xl font-bold text-slate-800 font-sora tracking-tight mb-6">Today's News</h2>
+        <h2 className="text-2xl font-bold text-slate-800 font-sora tracking-tight mb-6">{t("home", "todaysNews")}</h2>
         <NewsWidget />
       </div>
 

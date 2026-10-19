@@ -5,11 +5,16 @@ import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { FarmSidebar } from "@/components/farm-sidebar";
 import { useUserData } from "@/context/UserDataProvider";
 import Image from "next/image";
+import Link from "next/link";
 import { NotificationBell } from "@/components/NotificationBell";
+import { LanguageSwitcher } from "@/components/LanguageSwitcher";
+import { useLanguage, useDynamicText } from "@/context/LanguageProvider";
 import { useParams } from "next/navigation";
 
 export default function FarmLayout({ children }: { children: ReactNode }) {
     const { user } = useUserData();
+    const { t } = useLanguage();
+    const headerTitle = useDynamicText("Farm Dashboard");
     const params = useParams();
     const farmId = params.farmId as string;
 
@@ -22,26 +27,32 @@ export default function FarmLayout({ children }: { children: ReactNode }) {
                     <header className="h-20 min-h-[65px] bg-white border-b border-slate-200 flex items-center px-6 sticky top-0 z-20 w-full justify-between" style={{ height: "80px" }}>
                         <div className="flex items-center gap-4">
                             <SidebarTrigger className="text-slate-600 hover:text-slate-900 hover:bg-slate-100" />
-                            <div className="h-4 w-[1px] bg-slate-200 hidden md:block" />
-                            <span className="font-semibold text-slate-800 text-sm hidden md:block">Farm Dashboard</span>
+                            <span className="font-semibold text-slate-800 text-sm hidden md:block">
+                                {headerTitle}
+                            </span>
                         </div>
-                        <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-3">
+                            {/* Language Switcher in Header */}
+                            <LanguageSwitcher variant="inline" />
+
                             {/* Notification Bell with Dropdown */}
                             <NotificationBell />
 
-                            {user?.avatar ? (
-                                <Image
-                                    src={user.avatar}
-                                    alt="Profile"
-                                    width={38}
-                                    height={38}
-                                    className="rounded-full border border-slate-200 shadow-sm cursor-pointer hover:opacity-90 transition-opacity"
-                                />
-                            ) : (
-                                <div className="h-9 w-9 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 font-bold text-sm shadow-sm cursor-pointer">
-                                    {user?.userName?.[0]?.toUpperCase() || "U"}
-                                </div>
-                            )}
+                            <Link href="/home/profile" title={t("user", "profile")}>
+                                {user?.avatar ? (
+                                    <Image
+                                        src={user.avatar}
+                                        alt="Profile"
+                                        width={38}
+                                        height={38}
+                                        className="rounded-full border border-slate-200 shadow-sm cursor-pointer hover:opacity-90 hover:ring-2 hover:ring-emerald-400 transition-all"
+                                    />
+                                ) : (
+                                    <div className="h-9 w-9 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 font-bold text-sm shadow-sm cursor-pointer hover:ring-2 hover:ring-emerald-400 transition-all">
+                                        {user?.userName?.[0]?.toUpperCase() || "U"}
+                                    </div>
+                                )}
+                            </Link>
                         </div>
                     </header>
 

@@ -5,10 +5,14 @@ import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
 import { useUserData } from "@/context/UserDataProvider";
 import Image from "next/image";
+import Link from "next/link";
 import { NotificationBell } from "@/components/NotificationBell";
+import { LanguageSwitcher } from "@/components/LanguageSwitcher";
+import { useLanguage } from "@/context/LanguageProvider";
 
 export default function HomeLayout({ children }: { children: ReactNode }) {
     const { user } = useUserData();
+    const { t } = useLanguage();
 
     return (
         <SidebarProvider>
@@ -20,25 +24,32 @@ export default function HomeLayout({ children }: { children: ReactNode }) {
                         <div className="flex items-center gap-4">
                             <SidebarTrigger className="text-slate-600 hover:text-slate-900 hover:bg-slate-100" />
                             <div className="h-4 w-[1px] bg-slate-200 hidden md:block" />
-                            <span className="font-semibold text-slate-800 text-sm hidden md:block">Overview</span>
+                            <span className="font-semibold text-slate-800 text-sm hidden md:block">
+                                {t("home", "overview")}
+                            </span>
                         </div>
-                        <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-3">
+                            {/* Language Switcher in Header */}
+                            <LanguageSwitcher variant="inline" />
+
                             {/* Notification Bell with Dropdown */}
                             <NotificationBell />
 
-                            {user?.avatar ? (
-                                <Image
-                                    src={user.avatar}
-                                    alt="Profile"
-                                    width={38}
-                                    height={38}
-                                    className="rounded-full border border-slate-200 shadow-sm cursor-pointer hover:opacity-90 transition-opacity"
-                                />
-                            ) : (
-                                <div className="h-9 w-9 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 font-bold text-sm shadow-sm cursor-pointer">
-                                    {user?.userName?.[0]?.toUpperCase() || "U"}
-                                </div>
-                            )}
+                            <Link href="/home/profile" title={t("user", "profile")}>
+                                {user?.avatar ? (
+                                    <Image
+                                        src={user.avatar}
+                                        alt="Profile"
+                                        width={38}
+                                        height={38}
+                                        className="rounded-full border border-slate-200 shadow-sm cursor-pointer hover:opacity-90 hover:ring-2 hover:ring-emerald-400 transition-all"
+                                    />
+                                ) : (
+                                    <div className="h-9 w-9 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 font-bold text-sm shadow-sm cursor-pointer hover:ring-2 hover:ring-emerald-400 transition-all">
+                                        {user?.userName?.[0]?.toUpperCase() || "U"}
+                                    </div>
+                                )}
+                            </Link>
                         </div>
                     </header>
 

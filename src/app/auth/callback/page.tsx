@@ -28,12 +28,23 @@ export default function CallbackPage() {
                 }
 
                 if (session?.user) {
-                    // Check verification/onboarding status from the database
-                    const { data: userData, error: dbError } = await supabase
+                    // Check verification/onboarding status from the database (check by id, fallback to email)
+                    let { data: userData, error: dbError } = await supabase
                         .from("users")
                         .select("is_verified")
                         .eq("id", session.user.id)
                         .maybeSingle();
+
+                    if (!userData && session.user.email) {
+                        const { data: userByEmail } = await supabase
+                            .from("users")
+                            .select("is_verified")
+                            .eq("userEmail", session.user.email)
+                            .maybeSingle();
+                        if (userByEmail) {
+                            userData = userByEmail;
+                        }
+                    }
 
                     if (dbError) {
                         console.error("Error checking onboarding status:", dbError.message);
@@ -57,11 +68,22 @@ export default function CallbackPage() {
                                 subscription.unsubscribe();
 
                                 // Check database status for dynamic onboarding check
-                                const { data: userData } = await supabase
+                                let { data: userData } = await supabase
                                     .from("users")
                                     .select("is_verified")
                                     .eq("id", currentSession.user.id)
                                     .maybeSingle();
+
+                                if (!userData && currentSession.user.email) {
+                                    const { data: userByEmail } = await supabase
+                                        .from("users")
+                                        .select("is_verified")
+                                        .eq("userEmail", currentSession.user.email)
+                                        .maybeSingle();
+                                    if (userByEmail) {
+                                        userData = userByEmail;
+                                    }
+                                }
 
                                 const isVerified = userData?.is_verified;
 
@@ -81,7 +103,7 @@ export default function CallbackPage() {
                         subscription.unsubscribe();
                         toast.error("Session timeout. Please try logging in again.");
                         router.push("/auth");
-                    }, 6000);
+                    }, 10000);
 
                     return () => {
                         clearTimeout(timeout);

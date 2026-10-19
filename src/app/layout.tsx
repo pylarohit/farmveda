@@ -4,6 +4,7 @@ import "./globals.css";
 import { Toaster } from "react-hot-toast";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { UserDataProvider } from "@/context/UserDataProvider";
+import { LanguageProvider } from "@/context/LanguageProvider";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 
 const geistSans = Geist({
@@ -55,11 +56,13 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} ${sora.variable} ${inter.variable} ${raleway.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-slate-50 dark:bg-[#0A0E1A]">
-        <UserDataProvider>
-          <TooltipProvider>
-            {children}
-          </TooltipProvider>
-        </UserDataProvider>
+        <LanguageProvider>
+          <UserDataProvider>
+            <TooltipProvider>
+              {children}
+            </TooltipProvider>
+          </UserDataProvider>
+        </LanguageProvider>
         <Toaster />
         <SpeedInsights />
       </body>

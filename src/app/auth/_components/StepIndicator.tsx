@@ -2,12 +2,7 @@
 
 import { cn } from "@/lib/utils";
 import { Check } from "lucide-react";
-
-const STEPS = [
-    { number: 1, label: "Profile" },
-    { number: 2, label: "Address" },
-    { number: 3, label: "Review"  },
-];
+import { useLanguage } from "@/context/LanguageProvider";
 
 interface StepIndicatorProps {
     current: number;
@@ -15,9 +10,16 @@ interface StepIndicatorProps {
 }
 
 export function StepIndicator({ current, onStepClick }: StepIndicatorProps) {
+    const { t } = useLanguage();
+
+    const steps = [
+        { number: 1, label: t("onboarding", "step1Title") },
+        { number: 2, label: t("onboarding", "step2Title") },
+        { number: 3, label: t("onboarding", "step3Title") },
+    ];
     return (
         <div className="flex items-center w-full">
-            {STEPS.map((s, idx) => {
+            {steps.map((s, idx) => {
                 const done   = current > s.number;
                 const active = current === s.number;
 
@@ -44,14 +46,14 @@ export function StepIndicator({ current, onStepClick }: StepIndicatorProps) {
                                 "text-[10px] font-semibold uppercase tracking-wider whitespace-nowrap",
                                 active ? "text-emerald-600"
                                 : done  ? "text-emerald-500"
-                                        : "text-slate-400"
+                                         : "text-slate-400"
                             )}>
                                 {s.label}
                             </span>
                         </button>
 
                         {/* Connector */}
-                        {idx < STEPS.length - 1 && (
+                        {idx < steps.length - 1 && (
                             <div className="relative flex-1 mx-2 mb-5">
                                 <div className="h-[2px] w-full bg-slate-100 rounded-full" />
                                 <div

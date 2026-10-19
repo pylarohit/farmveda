@@ -71,9 +71,12 @@ import {
 import Link from "next/link";
 import { LuChartNoAxesColumn } from "react-icons/lu";
 import { Highlighter } from "@/components/ui/highlighter";
+import { useLanguage } from "@/context/LanguageProvider";
+import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 
 export function AppSidebar() {
   const { user, loading, unreadMessages } = useUserData();
+  const { t } = useLanguage();
   const supabase = createClient();
   const router = useRouter();
   const [signoutLoading, setSignoutLoading] = useState(false);
@@ -202,7 +205,7 @@ export function AppSidebar() {
               <Link href="/home" className="w-full">
                 <p className="flex items-center gap-3 font-medium font-inter text-base text-white tracking-wide">
                   <LuLayoutDashboard className="text-xl" />
-                  Dashboard
+                  {t("nav", "dashboard")}
                 </p>
               </Link>
             </SidebarMenuItem>
@@ -217,10 +220,10 @@ export function AppSidebar() {
               <Link href="/home/community" className="w-full flex items-center justify-between">
                 <p className="flex items-center gap-3 font-medium font-inter text-base text-white tracking-wide">
                   <LuUsers className="text-xl" />
-                  Community
+                  {t("nav", "community")}
                 </p>
                 <span className="text-[10px] font-bold font-inter bg-white text-slate-900 px-2 py-0.5 rounded-full shadow-sm">
-                  Soon
+                  {t("nav", "soon")}
                 </span>
               </Link>
             </SidebarMenuItem>
@@ -235,7 +238,7 @@ export function AppSidebar() {
               <Link href="/home/message" className="w-full flex items-center justify-between">
                 <p className="flex items-center gap-3 font-medium font-inter text-base text-white tracking-wide">
                   <LuMessageSquare className="text-xl" />
-                  Messages
+                  {t("nav", "messages")}
                 </p>
                 {unreadMessages > 0 && (
                   <span className="bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-sm animate-pulse">
@@ -250,7 +253,7 @@ export function AppSidebar() {
               <div className="flex items-center justify-center gap-3 mb-4 mt-2 select-none">
                 <div className="h-[1px] bg-slate-800/80 flex-1" />
                 <span className="text-[12px] font-bold text-slate-400 font-inter tracking-wider">
-                  My Farm Space
+                  {t("nav", "farmSpace")}
                 </span>
                 <div className="h-[1px] bg-slate-800/80 flex-1" />
               </div>
@@ -262,7 +265,7 @@ export function AppSidebar() {
               >
                 <div className="flex items-center gap-2.5">
                   <LuLayers className="text-white text-base" />
-                  <span>Farm Space</span>
+                  <span>{t("nav", "farmSpace")}</span>
                 </div>
                 <LuChevronDown
                   className={`text-white text-sm transition-transform duration-200 ${isFarmSpaceOpen ? "rotate-180" : ""
@@ -294,7 +297,7 @@ export function AppSidebar() {
                       </div>
                     ))
                   ) : (
-                    <p className="text-xs text-slate-500 py-1 pl-3 font-inter">No farms registered.</p>
+                    <p className="text-xs text-slate-500 py-1 pl-3 font-inter">{t("home", "noFarms")}</p>
                   )}
 
                   {/* Create New Option */}
@@ -304,7 +307,7 @@ export function AppSidebar() {
                     className="w-full flex items-center gap-2.5 py-2 px-3.5 rounded-full hover:bg-white hover:text-slate-950 text-slate-400 hover:font-bold transition-all cursor-pointer text-xs font-semibold font-inter text-left group"
                   >
                     <LuLayers className="text-slate-400 group-hover:text-slate-950 text-sm transition-colors" />
-                    <span>Create New...</span>
+                    <span>{t("nav", "createNew")}</span>
                   </button>
                 </div>
               )}
@@ -315,7 +318,7 @@ export function AppSidebar() {
               <div className="flex items-center justify-center gap-3 mb-4 mt-2 select-none">
                 <div className="h-[1px] bg-slate-800/80 flex-1" />
                 <span className="text-[12px] font-bold text-slate-400 font-inter tracking-wider">
-                  Services
+                  {t("nav", "services")}
                 </span>
                 <div className="h-[1px] bg-slate-800/80 flex-1" />
               </div>
@@ -332,7 +335,7 @@ export function AppSidebar() {
               <Link href="/home/budget" className="w-full">
                 <p className="flex items-center gap-3 font-medium font-inter text-base text-white tracking-wide">
                   <LuCalculator className="text-xl" />
-                  Budget Planner
+                  {t("nav", "budgetPlanner")}
                 </p>
               </Link>
             </SidebarMenuItem>
@@ -347,7 +350,7 @@ export function AppSidebar() {
               <Link href="/home/loans" className="w-full">
                 <p className="flex items-center gap-3 font-medium font-inter text-base text-white tracking-wide">
                   <LuCreditCard className="text-xl" />
-                  Loans
+                  {t("nav", "loans")}
                 </p>
               </Link>
             </SidebarMenuItem>
@@ -362,7 +365,7 @@ export function AppSidebar() {
               <Link href="/home/rent-hire" className="w-full">
                 <p className="flex items-center gap-3 font-medium font-inter text-base text-white tracking-wide">
                   <LuCalendar className="text-xl" />
-                  Rent & Hire
+                  {t("nav", "rentHire")}
                 </p>
               </Link>
             </SidebarMenuItem>
@@ -377,7 +380,7 @@ export function AppSidebar() {
               <Link href="/home/sell-crops" className="w-full">
                 <p className="flex items-center gap-3 font-medium font-inter text-base text-white tracking-wide">
                   <LuShoppingCart className="text-xl" />
-                  Sell Crops
+                  {t("nav", "sellCrops")}
                 </p>
               </Link>
             </SidebarMenuItem>
@@ -437,7 +440,7 @@ export function AppSidebar() {
                   className="justify-start gap-2 w-full font-roboto hover:bg-gray-50 rounded-none cursor-pointer text-slate-700"
                 >
                   <LuArrowUpRight className="text-[18px]" />
-                  Upgrade to Pro
+                  {t("user", "upgradePro")}
                 </Button>
 
                 <Separator />
@@ -449,12 +452,14 @@ export function AppSidebar() {
                 >
                   <div className="flex gap-2 items-center">
                     <LuSettings className="text-[18px]" />
-                    Profile
+                    {t("user", "profile")}
                   </div>
                   <kbd className="text-xs text-muted-foreground bg-muted px-1 py-0.5 rounded">
                     Ctrl+Alt+P
                   </kbd>
                 </Button>
+
+                <LanguageSwitcher variant="sidebar" />
 
                 <Button
                   variant="ghost"
@@ -462,7 +467,7 @@ export function AppSidebar() {
                   className="justify-start gap-2 w-full font-roboto hover:bg-gray-50 rounded-none cursor-pointer text-slate-700"
                 >
                   <LuCreditCard className="text-[18px]" />
-                  Billing
+                  {t("user", "billing")}
                 </Button>
 
                 <Button
@@ -471,7 +476,7 @@ export function AppSidebar() {
                 >
                   <div className="flex gap-2 items-center">
                     <Stars className="text-[18px]" />
-                    Ai Assistant
+                    {t("user", "aiAssistant")}
                   </div>
                   <kbd className="text-xs text-muted-foreground bg-muted px-1 py-0.5 rounded">
                     Ctrl+Alt+D
@@ -488,7 +493,7 @@ export function AppSidebar() {
                     >
                       <div className="flex gap-2 items-center font-inter">
                         <LuLogOut className="text-[18px]" />
-                        Logout
+                        {t("user", "logout")}
                       </div>
                       <kbd className="text-xs text-muted-foreground bg-muted px-1 py-0.5 rounded">
                         Ctrl+Alt+L
@@ -499,16 +504,15 @@ export function AppSidebar() {
                   <AlertDialogContent className="bg-white text-slate-900">
                     <AlertDialogHeader>
                       <AlertDialogTitle className="font-semibold font-inter text-xl">
-                        Are you sure you want to logout?
+                        {t("user", "logoutConfirmTitle")}
                       </AlertDialogTitle>
                       <AlertDialogDescription className="font-inter text-muted-foreground tracking-tight text-base">
-                        This will end your session and you&apos;ll need to sign
-                        in again. Despite you can simply close the tab.
+                        {t("user", "logoutConfirmDesc")}
                       </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
                       <AlertDialogCancel className="font-inter cursor-pointer border border-slate-200">
-                        Cancel
+                        {t("user", "cancel")}
                       </AlertDialogCancel>
                       <AlertDialogAction
                         className="bg-blue-500 text-white hover:bg-blue-700 font-inter cursor-pointer"
@@ -517,12 +521,12 @@ export function AppSidebar() {
                         {signoutLoading ? (
                           <>
                             <LuLoader className="animate-spin mr-2 inline" />
-                            <span>Signing Out..</span>
+                            <span>{t("user", "signingOut")}</span>
                           </>
                         ) : (
                           <>
                             <LuLogOut className="mr-2 inline" />
-                            <span>Logout</span>
+                            <span>{t("user", "logout")}</span>
                           </>
                         )}
                       </AlertDialogAction>

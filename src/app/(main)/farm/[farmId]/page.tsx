@@ -33,12 +33,72 @@ import {
   Home
 } from "lucide-react";
 import { LuYoutube } from "react-icons/lu";
+import { useLanguage, useDynamicText, DynamicText } from "@/context/LanguageProvider";
 
 export default function FarmHomePage() {
   const params = useParams();
   const farmId = params.farmId as string;
   const supabase = createClient();
   const { user } = useUserData();
+  const { lang, t } = useLanguage();
+
+  const textNamaste = useDynamicText("Namaste");
+  const textActiveRecord = useDynamicText("Active Farm Record");
+  const textCrop = useDynamicText("Crop");
+  const textArea = useDynamicText("Area");
+  const textAcres = useDynamicText("Acres");
+  const textEndDate = useDynamicText("End Date");
+  const textNotSet = useDynamicText("Not Set");
+  const textSoil = useDynamicText("Soil");
+  const textOptimal = useDynamicText("Optimal");
+  const textCultivationProgress = useDynamicText("Cultivation Progress");
+  
+  const textSowing = useDynamicText("Sowing");
+  const textNursery = useDynamicText("Nursery");
+  const textGrowth = useDynamicText("Growth");
+  const textHarvesting = useDynamicText("Harvesting");
+  const textCompleted = useDynamicText("Completed");
+  const textActiveStage = useDynamicText("Active Stage");
+  const textUpcoming = useDynamicText("Upcoming");
+
+  const textNoThumbnail = useDynamicText("No thumbnail uploaded");
+  const textThumbnailNote = useDynamicText("Note: This thumbnail is useful for project in community for others to preview project.");
+  const textClickUpload = useDynamicText("Click to Upload Thumbnail");
+  const textRecommended = useDynamicText("1280 × 300 Recommended (Max 1MB)");
+
+  const textQuickActions = useDynamicText("Quick Actions");
+  const textDetectDisease = useDynamicText("Detect Disease");
+  const textScanCrop = useDynamicText("Scan Crop");
+  const textAiRoadmap = useDynamicText("AI Roadmap Maker");
+  const textRoadmap = useDynamicText("Roadmap");
+  const textAskAiAssistant = useDynamicText("Ask AI Assistant");
+  const textAskGemini = useDynamicText("Ask Gemini");
+
+  const textWeatherAlert = useDynamicText("Weather Action Alert");
+  const textToday = useDynamicText("Today");
+  const textWeatherMsg = useDynamicText("Heavy rainfall is expected this afternoon. Do not spray pesticides or fertilizers today as they will wash away. Ensure field drainage is clear.");
+
+  const textGeminiAnalysis = useDynamicText("Gemini Crop Analysis");
+  const textConsulting = useDynamicText("Consulting AI Agronomist...");
+  const textUploadReport = useDynamicText("Upload Photo for AI Report");
+  const textUploadReportDesc = useDynamicText("Please update your crop's photo today to unlock daily Gemini AI Crop Condition analysis and next steps.");
+  const textUploadNow = useDynamicText("Upload Photo Now");
+  const textRealtimeInsight = useDynamicText("Real-time Gemini Insight");
+
+  const textMyTasks = useDynamicText("My Tasks");
+  const textAllCaughtUp = useDynamicText("All caught up!");
+  const textNoTasks = useDynamicText("No tasks scheduled for today.");
+  const textFullCalendar = useDynamicText("View Full Farm Calendar");
+  const textMarketPrices = useDynamicText("Market Crop Prices");
+  const textFromYesterday = useDynamicText("from yesterday");
+  const textApmcMandi = useDynamicText("Local APMC Mandi");
+  const textDistrictMkt = useDynamicText("District Central Market");
+
+  const textRecVideos = useDynamicText("Recommended");
+  const textVideoGuides = useDynamicText("Video Guides");
+  const textLiveExpert = useDynamicText("Live expert cultivation videos via YouTube");
+  const textNoVideos = useDynamicText("No video guides found");
+  const textCheckLaterVideos = useDynamicText("Check back later for tutorials.");
 
   const [farmData, setFarmData] = useState<any>(null);
   const [roadmap, setRoadmap] = useState<any>(null);
@@ -294,10 +354,10 @@ export default function FarmHomePage() {
               <div>
                 <div className="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
                   <span className="text-lg font-black text-slate-800 tracking-wide">
-                    Namaste, {user?.userName?.split(" ")[0] || "Farmer"} 👋
+                    {textNamaste}, {user?.userName?.split(" ")[0] || "Farmer"} 👋
                   </span>
                   <span className="text-[10px] uppercase font-black tracking-widest text-[#7B92FF] bg-blue-50 px-2.5 py-1 rounded-full">
-                    Active Farm Record
+                    {textActiveRecord}
                   </span>
                 </div>
 
@@ -313,31 +373,31 @@ export default function FarmHomePage() {
                 {/* Farm Details Row */}
                 <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-3 text-xs text-slate-500 font-bold">
                   <div className="flex items-center gap-1">
-                    <span className="text-slate-400">Crop:</span>
+                    <span className="text-slate-400">{textCrop}:</span>
                     <span className="text-slate-800 font-extrabold">{cropName}</span>
                   </div>
                   <span className="text-slate-300">|</span>
                   <div className="flex items-center gap-1">
-                    <span className="text-slate-400">Area:</span>
-                    <span className="text-slate-800 font-extrabold">{farmData?.area_size || '0'} Acres</span>
+                    <span className="text-slate-400">{textArea}:</span>
+                    <span className="text-slate-800 font-extrabold">{farmData?.area_size || '0'} {textAcres}</span>
                   </div>
                   <span className="text-slate-300">|</span>
                   <div className="flex items-center gap-1">
-                    <span className="text-slate-400">End Date:</span>
+                    <span className="text-slate-400">{textEndDate}:</span>
                     <span className="text-slate-800 font-extrabold">{expectedEndDate}</span>
                   </div>
                   <span className="text-slate-300">|</span>
                   <div className="flex items-center gap-1">
-                    <span className="text-slate-400">Soil:</span>
+                    <span className="text-slate-400">{textSoil}:</span>
                     <span className="text-emerald-600 font-extrabold flex items-center gap-1">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" /> Optimal
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" /> {textOptimal}
                     </span>
                   </div>
                 </div>
                          {/* Bottom part: Progress Line */}
               <div className="mt-8 mb-6 pr-4">
                 <span className="text-[10px] text-slate-400 font-extrabold uppercase tracking-widest block mb-4">
-                  Cultivation Progress
+                  {textCultivationProgress}
                 </span>
                 {roadmap?.steps && roadmap.steps.length > 0 ? (
                   <div className="relative flex items-center justify-between mt-6">
@@ -455,7 +515,7 @@ export default function FarmHomePage() {
                             <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full mt-1.5 w-max ${
                               step.done ? 'bg-emerald-500 text-white' : step.current ? 'bg-blue-500 text-white' : 'bg-slate-700 text-slate-300'
                             }`}>
-                              {step.done ? 'Completed' : step.current ? 'Active Stage' : 'Upcoming'}
+                              {step.done ? textCompleted : step.current ? textActiveStage : textUpcoming}
                             </span>
                             <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-900" />
                           </div>
@@ -510,10 +570,10 @@ export default function FarmHomePage() {
                     <ImageIcon className="w-6 h-6 text-slate-500" />
                   </div>
                   <h3 className="text-[#D4D4D8] font-extrabold text-sm tracking-tight mb-1">
-                    No thumbnail uploaded
+                    {textNoThumbnail}
                   </h3>
                   <p className="text-slate-400 text-[10px] max-w-[200px] leading-relaxed">
-                    Note: This thumbnail is useful for project in community for others to preview project.
+                    {textThumbnailNote}
                   </p>
                 </div>
 
@@ -523,10 +583,10 @@ export default function FarmHomePage() {
                     <UploadCloud className="w-6 h-6 text-white" />
                   </div>
                   <h3 className="text-white font-extrabold text-sm tracking-tight mb-0.5">
-                    Click to Upload Thumbnail
+                    {textClickUpload}
                   </h3>
                   <p className="text-slate-400 text-[10px]">
-                    1280 × 300 Recommended (Max 1MB)
+                    {textRecommended}
                   </p>
                 </div>
 
@@ -539,7 +599,7 @@ export default function FarmHomePage() {
           {/* QUICK ACTIONS (From reference image) */}
           <div className="flex flex-col gap-4 mt-2">
             <h2 className="text-xl font-medium text-slate-800 flex items-center gap-1.5">
-              Quick Actions <ChevronDown className="w-4 h-4 text-blue-500" />
+              {textQuickActions} <ChevronDown className="w-4 h-4 text-blue-500" />
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               
@@ -553,7 +613,7 @@ export default function FarmHomePage() {
                   
                   {/* Title & Three Dots */}
                   <div className="flex items-center justify-between">
-                    <h3 className="font-extrabold text-slate-800 text-lg tracking-tight">Detect Disease</h3>
+                    <h3 className="font-extrabold text-slate-800 text-lg tracking-tight">{textDetectDisease}</h3>
                     <div className="w-6 h-6 rounded-full bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-400 group-hover:text-slate-600 transition-colors">
                       <MoreVertical className="w-3.5 h-3.5" />
                     </div>
@@ -571,7 +631,7 @@ export default function FarmHomePage() {
                       </div>
                     </div>
                     <span className="text-[11px] font-black uppercase tracking-wider text-purple-600">
-                      Scan Crop
+                      {textScanCrop}
                     </span>
                   </div>
 
@@ -588,7 +648,7 @@ export default function FarmHomePage() {
                   
                   {/* Title & Three Dots */}
                   <div className="flex items-center justify-between">
-                    <h3 className="font-extrabold text-slate-800 text-lg tracking-tight">AI Roadmap Maker</h3>
+                    <h3 className="font-extrabold text-slate-800 text-lg tracking-tight">{textAiRoadmap}</h3>
                     <div className="w-6 h-6 rounded-full bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-400 group-hover:text-slate-600 transition-colors">
                       <MoreVertical className="w-3.5 h-3.5" />
                     </div>
@@ -606,7 +666,7 @@ export default function FarmHomePage() {
                       </div>
                     </div>
                     <span className="text-[11px] font-black uppercase tracking-wider text-amber-600">
-                      Roadmap
+                      {textRoadmap}
                     </span>
                   </div>
 
@@ -623,7 +683,7 @@ export default function FarmHomePage() {
                   
                   {/* Title & Three Dots */}
                   <div className="flex items-center justify-between">
-                    <h3 className="font-extrabold text-slate-800 text-lg tracking-tight">Ask AI Assistant</h3>
+                    <h3 className="font-extrabold text-slate-800 text-lg tracking-tight">{textAskAiAssistant}</h3>
                     <div className="w-6 h-6 rounded-full bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-400 group-hover:text-slate-600 transition-colors">
                       <MoreVertical className="w-3.5 h-3.5" />
                     </div>
@@ -641,7 +701,7 @@ export default function FarmHomePage() {
                       </div>
                     </div>
                     <span className="text-[11px] font-black uppercase tracking-wider text-sky-600">
-                      Ask Gemini
+                      {textAskGemini}
                     </span>
                   </div>
 
@@ -658,11 +718,11 @@ export default function FarmHomePage() {
             </div>
             <div className="flex-1">
               <h3 className="text-xl font-black text-slate-900 flex items-center gap-2">
-                Weather Action Alert
-                <span className="bg-sky-100 text-sky-700 text-[10px] uppercase font-black px-2 py-1 rounded-lg tracking-wider">Today</span>
+                {textWeatherAlert}
+                <span className="bg-sky-100 text-sky-700 text-[10px] uppercase font-black px-2 py-1 rounded-lg tracking-wider">{textToday}</span>
               </h3>
               <p className="text-slate-600 text-base md:text-lg font-medium mt-1 leading-snug">
-                Heavy rainfall is expected this afternoon. <strong className="text-rose-600">Do not spray pesticides or fertilizers today</strong> as they will wash away. Ensure field drainage is clear.
+                {textWeatherMsg}
               </p>
             </div>
           </div>
@@ -679,13 +739,13 @@ export default function FarmHomePage() {
           <div className="bg-white rounded-[24px] border border-slate-200 p-6 shadow-sm flex flex-col min-h-[320px]">
             <div className="flex items-center gap-2 mb-4">
               <Sparkles className="w-5 h-5 text-indigo-600 animate-pulse" />
-              <h2 className="text-lg font-black text-slate-900">Gemini Crop Analysis</h2>
+              <h2 className="text-lg font-black text-slate-900">{textGeminiAnalysis}</h2>
             </div>
             
             {loadingAnalysis ? (
               <div className="flex flex-col items-center justify-center py-10 gap-3 my-auto">
                 <Loader2 className="w-6 h-6 text-indigo-600 animate-spin" />
-                <span className="text-xs text-slate-400 font-bold">Consulting AI Agronomist...</span>
+                <span className="text-xs text-slate-400 font-bold">{textConsulting}</span>
               </div>
             ) : aiAnalysis === "NO_TODAY_UPLOAD" ? (
               <div className="flex flex-col items-center justify-center p-6 bg-indigo-50/10 rounded-2xl border border-dashed border-indigo-200 text-center gap-3 my-auto">
@@ -693,25 +753,25 @@ export default function FarmHomePage() {
                   <Sparkles className="w-6 h-6 text-indigo-600 animate-pulse" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-slate-800 text-sm">Upload Photo for AI Report</h3>
+                  <h3 className="font-bold text-slate-800 text-sm">{textUploadReport}</h3>
                   <p className="text-slate-500 text-[11px] mt-1.5 leading-relaxed max-w-[220px]">
-                    Please update your crop's photo today to unlock daily Gemini AI Crop Condition analysis and next steps.
+                    {textUploadReportDesc}
                   </p>
                 </div>
                 <Link 
                   href={`/farm/${farmId}/disease`}
                   className="mt-1 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white text-xs font-black rounded-xl transition-all duration-200 shadow-sm"
                 >
-                  Upload Photo Now
+                  {textUploadNow}
                 </Link>
               </div>
             ) : (
               <div className="flex flex-col gap-4 my-auto">
                 <div className="text-slate-700 text-sm leading-relaxed whitespace-pre-line bg-indigo-50/30 p-4 rounded-2xl border border-indigo-50/50">
-                  {aiAnalysis}
+                  <DynamicText text={aiAnalysis} />
                 </div>
                 <div className="text-[10px] text-indigo-500 font-black uppercase tracking-widest flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-ping" /> Real-time Gemini Insight
+                  <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-ping" /> {textRealtimeInsight}
                 </div>
               </div>
             )}
@@ -720,15 +780,15 @@ export default function FarmHomePage() {
           {/* MY TASKS */}
           <div className="bg-white rounded-[24px] border border-slate-200 p-6 shadow-sm flex flex-col">
             <h2 className="text-xl font-black text-slate-900 flex items-center gap-2 mb-5">
-              <CalendarDays className="w-6 h-6 text-amber-500" /> My Tasks
+              <CalendarDays className="w-6 h-6 text-amber-500" /> {textMyTasks}
             </h2>
 
             <div className="flex flex-col gap-4 flex-1">
               {localTasks.length === 0 ? (
                 <div className="text-center p-6 bg-slate-50 rounded-2xl border border-slate-100">
                   <CheckCircle2 className="w-10 h-10 text-emerald-400 mx-auto mb-2" />
-                  <p className="text-slate-600 font-bold">All caught up!</p>
-                  <p className="text-slate-400 text-sm mt-1">No tasks scheduled for today.</p>
+                  <p className="text-slate-600 font-bold">{textAllCaughtUp}</p>
+                  <p className="text-slate-400 text-sm mt-1">{textNoTasks}</p>
                 </div>
               ) : (
                 localTasks.map((task) => (
@@ -746,10 +806,10 @@ export default function FarmHomePage() {
                     )}
                     <div className="flex-1 min-w-0">
                       <p className={`text-base font-bold mb-1 leading-snug ${task.done ? "text-slate-500 line-through" : "text-slate-800"}`}>
-                        {task.text}
+                        <DynamicText text={task.text} />
                       </p>
                       <p className="text-xs font-semibold text-slate-500 flex items-center gap-1.5">
-                        <Clock className="w-4 h-4" /> {task.time}
+                        <Clock className="w-4 h-4" /> <DynamicText text={task.time} />
                       </p>
                     </div>
                   </div>
@@ -758,14 +818,14 @@ export default function FarmHomePage() {
             </div>
             
             <Link href={`/farm/${farmId}/calender`} className="mt-4 text-center text-sm font-bold text-indigo-600 hover:text-indigo-800">
-              View Full Farm Calendar
+              {textFullCalendar}
             </Link>
           </div>
 
           {/* MARKET CROP PRICES */}
           <div className="bg-white rounded-[24px] border border-slate-200 p-6 shadow-sm">
             <h2 className="text-lg font-black text-slate-900 flex items-center gap-2 mb-4">
-              <TrendingUp className="w-5 h-5 text-emerald-600" /> Market Crop Prices
+              <TrendingUp className="w-5 h-5 text-emerald-600" /> {textMarketPrices}
             </h2>
             <div className="flex flex-col gap-3">
               {mandiPrices.map((market, i) => (
@@ -775,9 +835,11 @@ export default function FarmHomePage() {
                       <market.icon className="w-4 h-4" />
                     </div>
                     <div>
-                      <p className="font-bold text-sm text-slate-800 leading-snug">{market.market}</p>
+                      <p className="font-bold text-sm text-slate-800 leading-snug">
+                        <DynamicText text={market.market} />
+                      </p>
                       <p className={`text-[10px] font-bold ${market.trend === 'up' ? 'text-emerald-600' : 'text-rose-600'} mt-0.5`}>
-                        {market.change} from yesterday
+                        {market.change} {textFromYesterday}
                       </p>
                     </div>
                   </div>
@@ -800,8 +862,10 @@ export default function FarmHomePage() {
               <LuYoutube className="w-6 h-6" />
             </div>
             <div>
-              <h2 className="text-xl font-black text-slate-900 tracking-tight">Recommended {cropName} Video Guides</h2>
-              <p className="text-xs text-slate-400 font-bold mt-0.5">Live expert cultivation videos via YouTube</p>
+              <h2 className="text-xl font-black text-slate-900 tracking-tight">
+                {textRecVideos} <DynamicText text={cropName} /> {textVideoGuides}
+              </h2>
+              <p className="text-xs text-slate-400 font-bold mt-0.5">{textLiveExpert}</p>
             </div>
           </div>
         </div>
@@ -819,8 +883,8 @@ export default function FarmHomePage() {
         ) : videos.length === 0 ? (
           <div className="text-center p-8 bg-slate-50 rounded-2xl border border-slate-100">
             <LuYoutube className="w-10 h-10 text-slate-400 mx-auto mb-2" />
-            <p className="text-slate-600 font-bold">No video guides found</p>
-            <p className="text-slate-400 text-sm mt-1">Check back later for tutorials.</p>
+            <p className="text-slate-600 font-bold">{textNoVideos}</p>
+            <p className="text-slate-400 text-sm mt-1">{textCheckLaterVideos}</p>
           </div>
         ) : (
           <div 
@@ -854,7 +918,7 @@ export default function FarmHomePage() {
 
                   {/* Video Title */}
                   <h3 className="font-extrabold text-slate-800 text-sm sm:text-base leading-snug line-clamp-2 mt-4 min-h-[44px] group-hover:text-red-600 transition-colors">
-                    {vid.title}
+                    <DynamicText text={vid.title} />
                   </h3>
                 </div>
 
@@ -862,7 +926,7 @@ export default function FarmHomePage() {
                 <div className="flex items-center justify-between mt-4 pt-3 border-t border-slate-50">
                   {/* Channel Name as Pill */}
                   <span className="bg-slate-100 text-[10px] text-slate-500 font-extrabold uppercase px-3 py-1 rounded-full tracking-wider truncate max-w-[150px]">
-                    {vid.channelName}
+                    <DynamicText text={vid.channelName} />
                   </span>
                   
                   {/* Duration with Clock Icon */}

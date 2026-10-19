@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { Sun, Cloud, CloudRain, CloudLightning, CloudSnow, MapPin } from "lucide-react";
+import { useLanguage, useDynamicText, DynamicText } from "@/context/LanguageProvider";
 
 interface DailyWeather {
   date: string;
@@ -19,19 +20,29 @@ function getWeatherIcon(code: number) {
   return <Sun className="h-6 w-6 text-amber-500" />;
 }
 
-function getWeatherDesc(code: number) {
-  if (code <= 1) return "Clear";
-  if (code <= 3) return "Cloudy";
-  if (code >= 51 && code <= 67) return "Rain";
-  if (code >= 71 && code <= 86) return "Snow";
-  if (code >= 95) return "Storm";
-  return "Clear";
-}
-
 export function WeatherWidget() {
+  const { lang } = useLanguage();
   const [forecast, setForecast] = useState<DailyWeather[]>([]);
   const [loading, setLoading] = useState(true);
   const [locationName, setLocationName] = useState("Locating...");
+
+  const textForecast = useDynamicText("4-Day Forecast");
+  const textToday = useDynamicText("Today");
+  const textTomorrow = useDynamicText("Tomorrow");
+  const textClear = useDynamicText("Clear");
+  const textCloudy = useDynamicText("Cloudy");
+  const textRain = useDynamicText("Rain");
+  const textSnow = useDynamicText("Snow");
+  const textStorm = useDynamicText("Storm");
+
+  const getWeatherDesc = (code: number) => {
+    if (code <= 1) return textClear;
+    if (code <= 3) return textCloudy;
+    if (code >= 51 && code <= 67) return textRain;
+    if (code >= 71 && code <= 86) return textSnow;
+    if (code >= 95) return textStorm;
+    return textClear;
+  };
 
   useEffect(() => {
     async function fetchWeather(lat: number, lon: number, name: string) {
@@ -84,10 +95,14 @@ export function WeatherWidget() {
   }, []);
 
   const formatDate = (dateString: string, index: number) => {
-    if (index === 0) return "Today";
-    if (index === 1) return "Tomorrow";
+    if (index === 0) return textToday;
+    if (index === 1) return textTomorrow;
     const d = new Date(dateString);
-    return d.toLocaleDateString("en-US", { weekday: "short" });
+    try {
+      return d.toLocaleDateString(lang === "en" ? "en-US" : `${lang}-IN`, { weekday: "short" });
+    } catch {
+      return d.toLocaleDateString("en-US", { weekday: "short" });
+    }
   };
 
   return (
@@ -95,9 +110,9 @@ export function WeatherWidget() {
       {/* Header */}
       <div className="flex items-start justify-between mb-6">
         <div>
-          <h3 className="font-bold text-slate-800 text-lg font-sora">4-Day Forecast</h3>
+          <h3 className="font-bold text-slate-800 text-lg font-sora">{textForecast}</h3>
           <div className="flex items-center gap-1 mt-1 text-slate-400 text-xs font-medium">
-            <MapPin className="h-3 w-3" /> {locationName}
+            <MapPin className="h-3 w-3" /> <DynamicText text={locationName} />
           </div>
         </div>
       </div>
