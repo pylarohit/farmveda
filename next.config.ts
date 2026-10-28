@@ -48,5 +48,5 @@ const nextConfig: NextConfig = {
   },
 };
 
-// Force restart dev server
+// Force restart dev server - 2026-10-28
 export default nextConfig;

@@ -277,8 +277,9 @@ export function AppSidebar() {
                 <div className="mt-2.5 ml-4 pl-3.5 border-l border-slate-800 space-y-1.5 animate-in slide-in-from-top-1 duration-200">
                   {farms.length > 0 ? (
                     farms.map((farm) => (
-                      <div
+                      <Link
                         key={farm.id}
+                        href={`/farm/${farm.id}`}
                         className="flex items-center justify-between py-2 px-3.5 rounded-full transition-all group cursor-pointer hover:bg-white hover:text-slate-950 text-slate-300 font-inter animate-in fade-in duration-200"
                       >
                         <div className="flex items-center gap-2.5 min-w-0">
@@ -294,7 +295,7 @@ export function AppSidebar() {
                           height={18}
                           className="rounded-full flex-shrink-0 border border-slate-850"
                         />
-                      </div>
+                      </Link>
                     ))
                   ) : (
                     <p className="text-xs text-slate-500 py-1 pl-3 font-inter">{t("home", "noFarms")}</p>
