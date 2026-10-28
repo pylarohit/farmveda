@@ -20,12 +20,33 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const lang = (formData.get("lang") as string) || "en";
+    const languageNames: Record<string, string> = {
+      en: "English",
+      hi: "Hindi (हिन्दी)",
+      te: "Telugu (తెలుగు)",
+      ta: "Tamil (தமிழ்)",
+      kn: "Kannada (ಕನ್ನಡ)",
+      mr: "Marathi (मराठी)",
+      gu: "Gujarati (ગુજરાતી)",
+      bn: "Bengali (বাংলা)",
+      pa: "Punjabi (ਪੰਜਾਬੀ)",
+      ml: "Malayalam (മലയാളം)",
+    };
+    const targetLanguageName = languageNames[lang] || "English";
+
     const bytes = await file.arrayBuffer();
     const base64Image = Buffer.from(bytes).toString("base64");
     const mimeType = file.type || "image/jpeg";
 
     const promptText = `
 You are Farmveda AI, an expert agricultural pathologist, agronomist, and crop health specialist.
+
+LANGUAGE REQUIREMENT:
+- Target Language: ${targetLanguageName} (${lang})
+- You MUST write ALL values, descriptions, diagnosis names, symptoms, and advice in ${targetLanguageName}.
+${lang !== "en" ? `- Important: Do NOT respond in English. Translate and write all textual values (diseaseName, cropName, whatHappened, whyItHappened, simpleDescription, visibleSymptoms, doToday, organicTreatment, chemicalTreatment, prevention, wateringAdvice, fertilizerAdvice, farmerMessage, reason) naturally in ${targetLanguageName} so the local farmer can easily read and understand it in their own language.` : ""}
+- The JSON keys ("isValidCrop", "isHealthy", "diseaseName", etc.) must remain in English as specified below.
 
 TASK:
 Examine the uploaded image very carefully to determine if it shows a real farm crop, agricultural plant, leaf, crop fruit/vegetable, field, or farm vegetation.
@@ -35,7 +56,7 @@ STRICT VALIDATION RULES:
 2. REJECT IMMEDIATELY: Random non-crop images, humans, faces, animals, pets, vehicles, buildings, electronics, screenshots, logos, graphics, icons, abstract digital art, documents, household items, cooked food dishes, or anything that is NOT a real crop/plant.
 
 CASE 1: THE IMAGE IS NOT A REAL CROP OR PLANT (isValidCrop = false)
-Return strictly valid JSON with this exact structure:
+Return strictly valid JSON with this exact structure (with values written in ${targetLanguageName}):
 {
   "isValidCrop": false,
   "isHealthy": false,

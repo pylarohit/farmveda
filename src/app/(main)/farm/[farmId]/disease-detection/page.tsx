@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { useLanguage, DynamicText } from "@/context/LanguageProvider";
 import {
   UploadCloud,
   Camera,
@@ -45,6 +46,7 @@ const authenticator = async () => {
   }
 };
 export default function DiseaseDetectionPage() {
+  const { lang } = useLanguage();
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [scanState, setScanState] = useState<"idle" | "camera" | "scanning" | "results" | "error">("idle");
@@ -187,6 +189,7 @@ export default function DiseaseDetectionPage() {
 
     const formData = new FormData();
     formData.append("file", selectedFile);
+    formData.append("lang", lang);
 
     try {
       setTimeout(() => setActiveStep(2), 600);
