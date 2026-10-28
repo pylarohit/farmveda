@@ -193,53 +193,45 @@ export default function DiseaseDetectionPage() {
       setTimeout(() => setActiveStep(3), 1200);
       setTimeout(() => setActiveStep(4), 1800);
 
-      let response: Response;
-      try {
-        response = await fetch("http://localhost:8000/api/detect-disease", {
-          method: "POST",
-          body: formData,
-        });
-        if (!response.ok) throw new Error("Backend port 8000 non-OK");
-      } catch (err) {
-        console.log("Direct port 8000 fetch failed, trying Next.js API route fallback...");
-        response = await fetch("/api/detect-disease", {
-          method: "POST",
-          body: formData,
-        });
-      }
+      const response = await fetch("/api/detect-disease", {
+        method: "POST",
+        body: formData,
+      });
 
       if (!response.ok) {
         const errJson = await response.json().catch(() => ({}));
-        throw new Error(errJson.detail || "Failed to process image through AI backend pipeline.");
+        throw new Error(errJson.detail || errJson.error || "Failed to process image through AI agronomist pipeline.");
       }
 
       const data = await response.json();
       setResult(data);
       setScanState("results");
 
-      // Save to localStorage history
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const base64data = reader.result as string;
-        const newHistoryItem = {
-          id: Date.now().toString(),
-          timestamp: new Date().toLocaleDateString(undefined, {
-            month: "short",
-            day: "numeric",
-            hour: "2-digit",
-            minute: "2-digit"
-          }),
-          diseaseName: data.diseaseName,
-          imageUrl: base64data,
-          result: data
+      // Save to localStorage history only for valid crop scans
+      if (data.isValidCrop !== false) {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          const base64data = reader.result as string;
+          const newHistoryItem = {
+            id: Date.now().toString(),
+            timestamp: new Date().toLocaleDateString(undefined, {
+              month: "short",
+              day: "numeric",
+              hour: "2-digit",
+              minute: "2-digit"
+            }),
+            diseaseName: data.diseaseName,
+            imageUrl: base64data,
+            result: data
+          };
+          setHistory((prev) => {
+            const updated = [newHistoryItem, ...prev.filter(item => item.result.diseaseName !== data.diseaseName).slice(0, 9)];
+            localStorage.setItem("crop_disease_history", JSON.stringify(updated));
+            return updated;
+          });
         };
-        setHistory((prev) => {
-          const updated = [newHistoryItem, ...prev.filter(item => item.result.diseaseName !== data.diseaseName).slice(0, 9)];
-          localStorage.setItem("crop_disease_history", JSON.stringify(updated));
-          return updated;
-        });
-      };
-      reader.readAsDataURL(selectedFile);
+        reader.readAsDataURL(selectedFile);
+      }
     } catch (error: any) {
       console.error("Scan error:", error);
       setErrorMsg(error.message);
@@ -526,7 +518,71 @@ export default function DiseaseDetectionPage() {
               </div>
             )}
 
-            {scanState === "results" && result && (
+            {/* ──────────── INVALID PHOTO DETECTED ──────────── */}
+            {scanState === "results" && result && result.isValidCrop === false && (
+              <div className="w-full flex flex-col gap-6 max-w-4xl mx-auto">
+                <div className="w-full bg-amber-500 text-white rounded-[24px] p-6 shadow-md flex items-start gap-4 relative overflow-hidden">
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 blur-[30px] rounded-full" />
+                  <AlertTriangle className="h-8 w-8 text-amber-100 shrink-0 mt-0.5" />
+                  <div>
+                    <h4 className="text-sm font-black uppercase tracking-wider text-amber-100 mb-1">Non-Crop Photo Detected</h4>
+                    <p className="text-base font-bold">{result.farmerMessage || "Please provide a valid photo of a crop, plant, or leaf to detect disease."}</p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-12 gap-6 w-full items-start">
+                  <div className="md:col-span-5 flex flex-col gap-3">
+                    <div className="relative w-full aspect-[4/3] rounded-2xl overflow-hidden bg-black border border-slate-200 shadow-md">
+                      <img src={previewUrl} alt="Uploaded Image" className="w-full h-full object-cover" />
+                      <div className="absolute top-3 left-3 bg-rose-600 text-white px-3 py-1 rounded-lg text-[10px] font-bold shadow-md flex items-center gap-1.5">
+                        <X className="h-3.5 w-3.5" /> Not a Crop/Plant
+                      </div>
+                    </div>
+                    <p className="text-xs text-slate-500 text-center font-medium">Uploaded Image</p>
+                  </div>
+
+                  <div className="md:col-span-7 bg-white/95 border border-slate-200 rounded-[28px] p-6 shadow-sm flex flex-col gap-4">
+                    <div className="border-b border-slate-100 pb-3">
+                      <h3 className="text-lg font-black text-slate-900">Why was this photo rejected?</h3>
+                      <p className="text-sm text-slate-600 mt-1 leading-relaxed">
+                        {result.reason || "The uploaded image does not appear to contain a living crop, plant, leaf, or farm produce."}
+                      </p>
+                    </div>
+
+                    <div className="bg-emerald-50/70 border border-emerald-100 rounded-2xl p-4">
+                      <h4 className="text-xs font-black text-emerald-800 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                        <CheckCircle2 className="h-4 w-4 text-emerald-600" /> Supported Photos
+                      </h4>
+                      <ul className="text-xs text-emerald-900 space-y-1 font-medium list-disc list-inside">
+                        <li>Real farm crops (Rice, Wheat, Tomato, Cotton, Chili, etc.)</li>
+                        <li>Individual plant leaves showing symptoms or discoloration</li>
+                        <li>Stems, roots, flowers, or fruits of agricultural plants</li>
+                        <li>Close-up photos with good lighting (10–15 cm away)</li>
+                      </ul>
+                    </div>
+
+                    <div className="bg-rose-50/70 border border-rose-100 rounded-2xl p-4">
+                      <h4 className="text-xs font-black text-rose-800 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                        <AlertTriangle className="h-4 w-4 text-rose-600" /> What cannot be diagnosed
+                      </h4>
+                      <p className="text-xs text-rose-900 font-medium leading-relaxed">
+                        Graphics, logos, digital drawings, electronics, vehicles, animals, humans, household items, or cooked food cannot be analyzed for plant diseases.
+                      </p>
+                    </div>
+
+                    <button
+                      onClick={resetScan}
+                      className="w-full bg-emerald-600 hover:bg-emerald-500 text-white px-6 py-4 rounded-2xl font-black text-sm flex items-center justify-center gap-2.5 transition-all shadow-md hover:shadow-lg mt-2 cursor-pointer"
+                    >
+                      <RefreshCw className="h-4 w-4" /> Upload a Real Crop Photo
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* ──────────── RESULTS DASHBOARD ──────────── */}
+            {scanState === "results" && result && result.isValidCrop !== false && (
               <div className="w-full flex flex-col gap-6">
 
                 {/* Farmer Message Motivational Header Banner */}
@@ -565,6 +621,11 @@ export default function DiseaseDetectionPage() {
                         {result.diseaseName?.toLowerCase().includes('healthy') ? 'Healthy Plant' : 'Sick Plant'}
                       </span>
 
+                      {result.cropName && (
+                        <span className="text-[11px] font-black uppercase tracking-wider text-emerald-600 block mb-0.5">
+                          {result.cropName}
+                        </span>
+                      )}
                       <h2 className="text-3xl font-black text-slate-900 tracking-tight mb-3">{result.diseaseName}</h2>
 
                       <div className="bg-emerald-50/50 border border-emerald-100/80 rounded-2xl p-4 mb-4">
