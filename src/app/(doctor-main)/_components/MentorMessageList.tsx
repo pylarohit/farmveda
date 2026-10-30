@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unused-expressions */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import React, { useEffect, useState } from "react";
@@ -6,15 +7,6 @@ import Image from "next/image";
 import { createClient } from "@/lib/supabase/client";
 import { useUserData } from "@/context/UserDataProvider";
 import { useRouter } from "next/navigation";
-
-type Message = {
-  id: string;
-  sender_id: string;
-  receiver_id: string;
-  receiver_type: "peer" | "mentor";
-  content: string;
-  created_at: string;
-};
 
 type UserDisplay = {
   id: string;
@@ -38,68 +30,83 @@ const MentorMessagesList: React.FC = () => {
 
     const fetchMessageNames = async () => {
       try {
-        // 1️⃣ Fetch messages involving this mentor where receiver_type = "mentor"
+        // 1️⃣ Fetch messages involving this mentor
         const { data: messages, error } = await supabase
           .from("messages")
-          .select("*")
-          .eq("receiver_type", "mentor")
+          .select("id, sender_id, receiver_id, content, created_at")
           .or(`sender_id.eq.${mentor.id},receiver_id.eq.${mentor.id}`);
 
         if (error) {
-          console.warn("Supabase messages notice (using fallback list):", error.message || error);
-          setUsers([
-            { id: "farmer-01", name: "Ramesh Patel (Tomato Blight Case)", avatar: null },
-            { id: "farmer-02", name: "Gurpreet Singh (Wheat Rust Consultation)", avatar: null },
-          ]);
-          setLoading(false);
-          return;
+          console.warn("Supabase messages query notice:", error.message || error);
         }
 
-        if (!messages || messages.length === 0) {
-          setUsers([
-            { id: "farmer-01", name: "Ramesh Patel (Tomato Blight Case)", avatar: null },
-            { id: "farmer-02", name: "Gurpreet Singh (Wheat Rust Consultation)", avatar: null },
-          ]);
-          setLoading(false);
-          return;
-        }
-
-        // 2️⃣ Collect peer (user) IDs
+        // 2️⃣ Collect peer (user) IDs from real messages
         const peerIds = new Set<string>();
-        messages.forEach((msg) => {
-          if (msg.sender_id !== mentor.id) {
-            peerIds.add(msg.sender_id);
-          }
-          if (msg.receiver_id !== mentor.id) {
-            peerIds.add(msg.receiver_id);
-          }
-        });
+        if (messages && messages.length > 0) {
+          messages.forEach((msg) => {
+            if (msg.sender_id && msg.sender_id !== mentor.id) {
+              peerIds.add(msg.sender_id);
+            }
+            if (msg.receiver_id && msg.receiver_id !== mentor.id) {
+              peerIds.add(msg.receiver_id);
+            }
+          });
+        }
 
-        // 3️⃣ Fetch peers from users table
-        const { data: peers } = await supabase
+        // Also add farmers who have real bookings with this mentor
+        try {
+          const { DoctorBookingService } = await import("@/lib/doctorBooking");
+          const sessions = await DoctorBookingService.getSessionsForDoctor(mentor.id);
+          sessions.forEach((s) => {
+            if (s.student_id && s.student_id !== mentor.id) {
+              peerIds.add(s.student_id);
+            }
+          });
+        } catch {}
+
+        if (peerIds.size === 0) {
+          // If no message threads yet, show real registered farmers from the database
+          const { data: realFarmers } = await supabase
+            .from("users")
+            .select("id, userName, avatar")
+            .limit(4);
+
+          if (realFarmers && realFarmers.length > 0) {
+            setUsers(
+              realFarmers.map((f) => ({
+                id: f.id,
+                name: f.userName || "Registered Farmer",
+                avatar: f.avatar || null,
+              }))
+            );
+          } else {
+            setUsers([]);
+          }
+          setLoading(false);
+          return;
+        }
+
+        // 3️⃣ Fetch real peers from users table
+        const { data: peers, error: peersError } = await supabase
           .from("users")
           .select("id, userName, avatar")
           .in("id", Array.from(peerIds));
 
-        // 4️⃣ Map into display objects
-        const allUsers: UserDisplay[] =
-          peers?.map((p) => ({
-            id: p.id,
-            name: p.userName,
-            avatar: p.avatar,
-          })) || [];
-
-        setUsers(allUsers.length > 0 ? allUsers : [
-          { id: "farmer-01", name: "Ramesh Patel (Tomato Blight Case)", avatar: null },
-          { id: "farmer-02", name: "Gurpreet Singh (Wheat Rust Consultation)", avatar: null },
-        ]);
+        if (!peersError && peers && peers.length > 0) {
+          setUsers(
+            peers.map((p) => ({
+              id: p.id,
+              name: p.userName || "Farmer",
+              avatar: p.avatar,
+            }))
+          );
+        } else {
+          setUsers([]);
+        }
         setLoading(false);
       } catch (err: any) {
         console.warn("Messages load warning:", err?.message);
-        setUsers([
-          { id: "farmer-01", name: "Ramesh Patel (Tomato Blight Case)", avatar: null },
-          { id: "farmer-02", name: "Gurpreet Singh (Wheat Rust Consultation)", avatar: null },
-        ]);
+        setUsers([]);
         setLoading(false);
       }
     };
@@ -115,17 +122,13 @@ const MentorMessagesList: React.FC = () => {
           event: "INSERT",
           schema: "public",
           table: "messages",
-          filter: "receiver_type=eq.mentor",
         },
         async (payload) => {
-          const newMessage = payload.new as Message;
-
-          // Only react if this mentor is involved
+          const newMessage = payload.new as any;
           if (
             newMessage.sender_id === mentor.id ||
             newMessage.receiver_id === mentor.id
           ) {
-            // Refetch the users list so new peers appear
             fetchMessageNames();
           }
         }
@@ -137,8 +140,8 @@ const MentorMessagesList: React.FC = () => {
     };
   }, [mentor?.id]);
 
-  if (mentorLoading || loading) return <div>Loading users...</div>;
-  if (users.length === 0) return <div>No messages found.</div>;
+  if (mentorLoading || loading) return <div className="text-sm text-slate-500 py-4">Loading conversations...</div>;
+  if (users.length === 0) return <div className="text-sm text-slate-500 py-4">No active farmer inquiries yet.</div>;
 
   return (
     <div>
@@ -146,23 +149,24 @@ const MentorMessagesList: React.FC = () => {
         {users.map((u) => (
           <li
             key={u.id}
-            className="flex flex-col gap-1 bg-gray-50 rounded-md p-2"
+            className="flex flex-col gap-1 bg-gray-50 rounded-xl p-3 border border-slate-200/60 hover:bg-emerald-50/50 hover:border-emerald-200 transition-all"
           >
             <div
               className="flex items-center gap-3 cursor-pointer"
               onClick={() => router.push(`/dashboard/messages/mentor/${u.id}`)}
             >
-              <Image
-                src={u.avatar || "/user.png"}
-                alt={u.name}
-                width={40}
-                height={40}
-                className="rounded-full object-cover"
-              />
-              <span className="font-medium font-sora text-base">{u.name}</span>
+              <div className="relative w-10 h-10 rounded-full overflow-hidden bg-emerald-100 shrink-0">
+                <Image
+                  src={u.avatar || "/user.png"}
+                  alt={u.name}
+                  fill
+                  className="rounded-full object-cover"
+                />
+              </div>
+              <span className="font-semibold font-sora text-sm text-slate-900">{u.name}</span>
             </div>
-            <span className="text-sm ml-12 -mt-3 text-muted-foreground font-inter cursor-pointer">
-              Click to respond back
+            <span className="text-xs ml-13 -mt-1 text-emerald-700 font-medium cursor-pointer">
+              Click to view farmer consultation
             </span>
           </li>
         ))}

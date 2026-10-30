@@ -222,9 +222,6 @@ export function AppSidebar() {
                   <LuUsers className="text-xl" />
                   {t("nav", "community")}
                 </p>
-                <span className="text-[10px] font-bold font-inter bg-white text-slate-900 px-2 py-0.5 rounded-full shadow-sm">
-                  {t("nav", "soon")}
-                </span>
               </Link>
             </SidebarMenuItem>
 
