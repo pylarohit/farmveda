@@ -200,54 +200,61 @@ export default function RoadmapPage() {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Show local preview immediately
-    const localUrl = URL.createObjectURL(file);
-    const newRoadmap = { ...roadmap };
-    newRoadmap.steps[activeUploadIndex].isReviewing = true;
-    newRoadmap.steps[activeUploadIndex].photoUrl = localUrl;
-    setRoadmap({ ...newRoadmap });
+    const targetIdx = activeUploadIndex;
 
-    try {
-      const formData = new FormData();
-      formData.append("image", file);
-      formData.append("stepTitle", roadmap.steps[activeUploadIndex].title);
-      formData.append("crop", crop);
+    // Convert file to persistent base64 data URL so it persists across pages and in DB
+    const reader = new FileReader();
+    reader.onload = async () => {
+      const dataUrl = reader.result as string;
+      const newRoadmap = { ...roadmap };
+      newRoadmap.steps[targetIdx].isReviewing = true;
+      newRoadmap.steps[targetIdx].photoUrl = dataUrl;
+      setRoadmap({ ...newRoadmap });
 
-      const res = await fetch("/api/ai/photo-review", {
-        method: "POST",
-        body: formData,
-      });
+      // Save persistent photoUrl to Supabase farm_roadmaps immediately
+      await saveRoadmapProgress(newRoadmap.steps);
 
-      let review = "Photo uploaded successfully. Keep up the great work!";
-      if (res.ok) {
-        const data = await res.json();
-        review = data.review || review;
+      try {
+        const formData = new FormData();
+        formData.append("image", file);
+        formData.append("stepTitle", roadmap.steps[targetIdx].title);
+        formData.append("crop", crop);
+
+        const res = await fetch("/api/ai/photo-review", {
+          method: "POST",
+          body: formData,
+        });
+
+        let review = "Photo uploaded successfully. Keep up the great work!";
+        if (res.ok) {
+          const data = await res.json();
+          review = data.review || review;
+        }
+
+        setRoadmap(prev => {
+          if (!prev) return prev;
+          const updated = { ...prev };
+          updated.steps[targetIdx].isReviewing = false;
+          updated.steps[targetIdx].aiReview = review;
+          saveRoadmapProgress(updated.steps);
+          return { ...updated };
+        });
+      } catch (err) {
+        console.error(err);
+        setRoadmap(prev => {
+          if (!prev) return prev;
+          const updated = { ...prev };
+          updated.steps[targetIdx].isReviewing = false;
+          updated.steps[targetIdx].aiReview = "Photo saved. Keep up following the roadmap.";
+          saveRoadmapProgress(updated.steps);
+          return { ...updated };
+        });
       }
+    };
+    reader.readAsDataURL(file);
 
-      setRoadmap(prev => {
-        if (!prev) return prev;
-        const updated = { ...prev };
-        updated.steps[activeUploadIndex!].isReviewing = false;
-        updated.steps[activeUploadIndex!].aiReview = review;
-        // 4. Sync AI review to DB
-        saveRoadmapProgress(updated.steps);
-        return { ...updated };
-      });
-    } catch (err) {
-      console.error(err);
-      setRoadmap(prev => {
-        if (!prev) return prev;
-        const updated = { ...prev };
-        updated.steps[activeUploadIndex!].isReviewing = false;
-        updated.steps[activeUploadIndex!].aiReview = "Photo saved. AI review unavailable right now.";
-        saveRoadmapProgress(updated.steps);
-        return { ...updated };
-      });
-    } finally {
-      setActiveUploadIndex(null);
-      // Reset file input so same file can be re-selected
-      if (fileInputRef.current) fileInputRef.current.value = "";
-    }
+    setActiveUploadIndex(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
   // ─── Initial screen ────────────────────────────────────────────────────────

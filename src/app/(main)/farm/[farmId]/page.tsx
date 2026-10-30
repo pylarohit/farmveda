@@ -22,6 +22,7 @@ import {
   Map,
   Bot,
   ChevronRight,
+  ArrowRight,
   UploadCloud,
   Sparkles,
   Loader2,
@@ -34,6 +35,62 @@ import {
 } from "lucide-react";
 import { LuYoutube } from "react-icons/lu";
 import { useLanguage, useDynamicText, DynamicText } from "@/context/LanguageProvider";
+
+function getStagePrecautionsAndPredictions(cropName: string, stageTitle: string, nextTitle: string) {
+  const crop = (cropName || "").toLowerCase();
+  const stage = (stageTitle || "").toLowerCase();
+
+  // Rice / Paddy specific guidance (Short, punchy bullet points)
+  if (crop.includes("rice") || crop.includes("paddy")) {
+    if (stage.includes("seed") || stage.includes("selection") || stage.includes("treatment")) {
+      return {
+        stageName: stageTitle,
+        formattedText: `• Treat seeds with Carbendazim (2g/kg) to shield against blast and rot.
+• Discard floating seeds in 10% brine; incubate for 24-36 hrs.
+• Next: Prepare raised beds (1.2m width) with side drainage for nursery.`
+      };
+    }
+    if (stage.includes("land") || stage.includes("prepar")) {
+      return {
+        stageName: stageTitle,
+        formattedText: `• Puddle field 2-3 times to create an impermeable layer and save water.
+• Level field with laser leveler to maintain uniform 2-3 cm water depth.
+• Next: Procure certified seeds and verify minimum 85% germination.`
+      };
+    }
+    if (stage.includes("nursery")) {
+      return {
+        stageName: stageTitle,
+        formattedText: `• Maintain shallow 1-2 cm water; drain excess after heavy rains.
+• Spray 5% Neem extract if leaf spots or Thrips pinholes appear.
+• Next: Harden seedlings at 20-22 days; apply basal NPK before transplanting.`
+      };
+    }
+    if (stage.includes("transplant") || stage.includes("sowing")) {
+      return {
+        stageName: stageTitle,
+        formattedText: `• Plant 2-3 seedlings per hill at shallow 2-3 cm depth (20x15 cm spacing).
+• Maintain 2-3 cm water for first week to accelerate root establishment.
+• Next: Apply pre-emergence herbicide and schedule first Urea dose at 21 days.`
+      };
+    }
+    // Default Rice
+    return {
+      stageName: stageTitle,
+      formattedText: `• Maintain 3-5 cm water; inspect weekly for Stem Borer and Blast.
+• Split Nitrogen application to prevent leaf lodging and disease.
+• Next: Keep bunds weed-free and prepare scheduled nutrient sprays.`
+    };
+  }
+
+  // General Crops
+  return {
+    stageName: stageTitle,
+    formattedText: `• Maintain optimal plant spacing and avoid over-irrigation in root zones.
+• Scout weekly for early sucking pests, root rot, and damping off.
+• Next: Prepare inputs and check weather forecast before foliar spraying.`
+  };
+}
 
 export default function FarmHomePage() {
   const params = useParams();
@@ -103,6 +160,9 @@ export default function FarmHomePage() {
   const [farmData, setFarmData] = useState<any>(null);
   const [roadmap, setRoadmap] = useState<any>(null);
   const [latestPhoto, setLatestPhoto] = useState<string | null>(null);
+  const [latestTaskPhoto, setLatestTaskPhoto] = useState<{ url: string; stepTitle: string } | null>(null);
+  const [thumbnailImgError, setThumbnailImgError] = useState(false);
+  const [currentStageInfo, setCurrentStageInfo] = useState<{ stageName: string; nextStageName: string } | null>(null);
   const [aiAnalysis, setAiAnalysis] = useState<string>("Analyzing crop conditions...");
   const [loadingAnalysis, setLoadingAnalysis] = useState<boolean>(true);
   const [loading, setLoading] = useState(true);
@@ -156,10 +216,41 @@ export default function FarmHomePage() {
       let localEvents: any[] = stored ? JSON.parse(stored) : [];
 
       // Fetch roadmap
+      let foundTaskPhoto: { url: string; stepTitle: string } | null = null;
+      let activeStageName = "Cultivation Stage";
+      let upcomingStageName = "Next Stage";
+
       const { data: rmap } = await supabase.from("farm_roadmaps").select("*").eq("farm_id", farmId).single();
       if (rmap) {
         setRoadmap(rmap);
-        if (rmap.steps) {
+        if (rmap.steps && Array.isArray(rmap.steps)) {
+          // Find the last photo uploaded in roadmap tasks (iterate backwards, ignoring expired blobs)
+          for (let i = rmap.steps.length - 1; i >= 0; i--) {
+            const s = rmap.steps[i];
+            const candidate = s.photoUrl || s.photo || s.imageUrl || s.image;
+            if (candidate && typeof candidate === "string" && candidate.trim().length > 0 && !candidate.startsWith("blob:")) {
+              foundTaskPhoto = {
+                url: candidate,
+                stepTitle: s.title || `Task #${i + 1}`
+              };
+              break;
+            }
+          }
+
+          // Determine current active stage and next stage
+          const upcomingIdx = rmap.steps.findIndex((s: any) => s.status === "upcoming");
+          if (upcomingIdx !== -1) {
+            activeStageName = rmap.steps[upcomingIdx].title;
+            if (upcomingIdx + 1 < rmap.steps.length) {
+              upcomingStageName = rmap.steps[upcomingIdx + 1].title;
+            } else {
+              upcomingStageName = "Harvest & Post-Harvest Storage";
+            }
+          } else if (rmap.steps.length > 0) {
+            activeStageName = rmap.steps[rmap.steps.length - 1].title;
+            upcomingStageName = "Harvest & Storage";
+          }
+
           const roadmapEvents: any[] = rmap.steps
             .filter((s: any) => s.estimatedDate)
             .map((s: any) => ({
@@ -175,7 +266,6 @@ export default function FarmHomePage() {
           const roadmapIds = new Set(roadmapEvents.map(e => e.id));
           const nonRoadmap = localEvents.filter((e) => !e.fromRoadmap && !roadmapIds.has(e.id));
           
-          // Filter out roadmap events from localEvents that might have updated status
           const existingRoadmap = localEvents.filter((e) => e.fromRoadmap);
           const mergedRoadmap = roadmapEvents.map(re => {
             const match = existingRoadmap.find(er => er.id === re.id);
@@ -186,23 +276,24 @@ export default function FarmHomePage() {
         }
       }
 
+      setLatestTaskPhoto(foundTaskPhoto);
+      setCurrentStageInfo({ stageName: activeStageName, nextStageName: upcomingStageName });
+
       // Save initial loaded list back to localStorage to keep it set
       localStorage.setItem(`farm_cal_events_${farmId}`, JSON.stringify(localEvents));
 
       // Filter events to show only tasks of today's date
       const todayStr = formatLocalDate(new Date());
-      
       const todayEvents = localEvents.filter((e) => e.date === todayStr);
       
-      // Map to localTasks state structure
       setLocalTasks(todayEvents.map((e: any) => ({
         id: e.id,
         text: e.title,
-        time: e.category.charAt(0).toUpperCase() + e.category.slice(1), // Category name like "Task", "Irrigation" etc.
+        time: e.category.charAt(0).toUpperCase() + e.category.slice(1),
         done: e.done
       })));
 
-      // Fetch latest scan photo for the crop card
+      // Fetch latest scan photo for the crop card as backup
       const { data: latestScan } = await supabase
         .from("disease_scans")
         .select("image_data, created_at")
@@ -211,49 +302,51 @@ export default function FarmHomePage() {
         .limit(1)
         .maybeSingle();
       
-      let uploadedToday = false;
-      if (latestScan) {
-        if (latestScan.image_data) {
-          setLatestPhoto(latestScan.image_data);
-        }
-        if (latestScan.created_at) {
-          const scanDate = new Date(latestScan.created_at).toDateString();
-          const todayDate = new Date().toDateString();
-          uploadedToday = scanDate === todayDate;
-        }
+      if (latestScan?.image_data) {
+        setLatestPhoto(latestScan.image_data);
       }
-      
-      // Fetch Gemini Crop Analysis only if photo was uploaded today
-      if (!uploadedToday) {
-        setAiAnalysis("NO_TODAY_UPLOAD");
-        setLoadingAnalysis(false);
-      } else {
-        try {
-          const prompt = `Based on the farm data: Crop: ${farm?.intended_crop || "Rice"}, Soil: ${farm?.soil_type || "Alluvial"}, Area: ${farm?.area_size || "3"} acres. Provide a short summary of how the crop condition is right now and what is the exact next step the farmer should take. Keep it concise (under 60 words total). Format it with clear bullet points.`;
-          
-          const response = await fetch("/api/ai/chat", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              message: prompt,
-              history: [],
-              farmData: farm,
-              mode: "normal"
-            })
-          });
 
-          if (response.ok) {
-            const resData = await response.json();
+      // Generate Stage Precautions & Predictions for AI analysis
+      const stageGuidance = getStagePrecautionsAndPredictions(
+        farm?.intended_crop || "Rice",
+        activeStageName,
+        upcomingStageName
+      );
+
+      try {
+        const prompt = `Crop: ${farm?.intended_crop || "Rice"}, Current Stage: "${activeStageName}", Next: "${upcomingStageName}".
+Task: Give exactly 3 SHORT bullet points (under 30 words total):
+• 1 precaution for "${activeStageName}".
+• 1 prediction/pest alert.
+• 1 next step for "${upcomingStageName}".
+Rules: No title, no headers, no intro, no emojis. Only 3 short concise bullet points.`;
+
+        const response = await fetch("/api/ai/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            message: prompt,
+            history: [],
+            farmData: farm,
+            mode: "normal"
+          })
+        });
+
+        if (response.ok) {
+          const resData = await response.json();
+          if (resData.text && resData.text.length > 20) {
             setAiAnalysis(resData.text);
           } else {
-            setAiAnalysis("Unable to retrieve AI analysis. Make sure your farm details are complete.");
+            setAiAnalysis(stageGuidance.formattedText);
           }
-        } catch (err) {
-          console.error("Analysis fetch error:", err);
-          setAiAnalysis("Error loading analysis. Please check connection.");
-        } finally {
-          setLoadingAnalysis(false);
+        } else {
+          setAiAnalysis(stageGuidance.formattedText);
         }
+      } catch (err) {
+        console.warn("AI analysis fetch error, using structured agronomic guidance:", err);
+        setAiAnalysis(stageGuidance.formattedText);
+      } finally {
+        setLoadingAnalysis(false);
       }
       
       setLoading(false);
@@ -560,37 +653,94 @@ export default function FarmHomePage() {
               </div>     </div>
             </div>
 
-            {/* Right Side (Image Upload Area) */}
-            <div className="col-span-10 md:col-span-4 relative min-h-[250px] md:min-h-full overflow-hidden flex flex-col group cursor-pointer bg-black">
-              <Link href={`/farm/${farmId}/disease`} className="absolute inset-0 w-full h-full bg-[#18181B] flex flex-col items-center justify-center p-6 text-center">
-                
-                {/* Default State (Visible when NOT hovered) */}
-                <div className="flex flex-col items-center justify-center transition-all duration-300 group-hover:opacity-0 group-hover:scale-95">
-                  <div className="w-12 h-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center mb-3">
-                    <ImageIcon className="w-6 h-6 text-slate-500" />
-                  </div>
-                  <h3 className="text-[#D4D4D8] font-extrabold text-sm tracking-tight mb-1">
-                    {textNoThumbnail}
-                  </h3>
-                  <p className="text-slate-400 text-[10px] max-w-[200px] leading-relaxed">
-                    {textThumbnailNote}
-                  </p>
-                </div>
+            {/* Right Side (Thumbnail Area - Shows Latest Uploaded Photo) */}
+            <div className="col-span-10 md:col-span-4 relative min-h-[250px] md:min-h-full overflow-hidden flex flex-col group cursor-pointer bg-slate-950">
+              {(() => {
+                const candidate = latestTaskPhoto?.url || latestPhoto || farmData?.image_url;
+                const hasValidCandidate = candidate && typeof candidate === "string" && !candidate.startsWith("blob:") && !thumbnailImgError;
+                const thumbnailToDisplay = hasValidCandidate ? candidate : null;
 
-                {/* Hover State (Visible ONLY when hovered) */}
-                <div className="absolute inset-0 flex flex-col items-center justify-center p-6 opacity-0 group-hover:opacity-100 transition-all duration-300 scale-95 group-hover:scale-100 bg-[#121214] border-2 border-dashed border-slate-700 rounded-[24px] m-2">
-                  <div className="w-12 h-12 rounded-2xl bg-white/10 border border-white/20 flex items-center justify-center mb-3">
-                    <UploadCloud className="w-6 h-6 text-white" />
-                  </div>
-                  <h3 className="text-white font-extrabold text-sm tracking-tight mb-0.5">
-                    {textClickUpload}
-                  </h3>
-                  <p className="text-slate-400 text-[10px]">
-                    {textRecommended}
-                  </p>
-                </div>
+                if (thumbnailToDisplay) {
+                  return (
+                    <div className="relative w-full h-full min-h-[250px]">
+                      {/* Uploaded photo */}
+                      <img
+                        src={thumbnailToDisplay}
+                        alt={latestTaskPhoto?.stepTitle || "Crop thumbnail"}
+                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                        onError={() => setThumbnailImgError(true)}
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/25 to-transparent pointer-events-none" />
 
-              </Link>
+                      {/* Photo Badge Info */}
+                      <div className="absolute bottom-3.5 left-3.5 right-3.5 flex items-center justify-between pointer-events-auto">
+                        <div className="bg-black/70 backdrop-blur-md border border-white/15 px-3 py-1.5 rounded-xl text-white shadow-sm">
+                          <p className="text-[10px] font-semibold text-emerald-400 uppercase tracking-wider flex items-center gap-1">
+                            <Sparkles className="w-2.5 h-2.5" />
+                            Latest Uploaded Photo
+                          </p>
+                          <p className="text-xs font-extrabold truncate max-w-[170px] mt-0.5">
+                            {latestTaskPhoto?.stepTitle || farmData?.intended_crop || "Crop Record"}
+                          </p>
+                        </div>
+
+                        <Link
+                          href={`/farm/${farmId}/roadmap`}
+                          className="bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-bold px-3 py-1.5 rounded-xl shadow-md backdrop-blur-sm transition-all flex items-center gap-1.5"
+                        >
+                          <span>Roadmap</span>
+                          <ArrowRight className="w-3 h-3" />
+                        </Link>
+                      </div>
+
+                      {/* Hover Overlay */}
+                      <Link
+                        href={`/farm/${farmId}/roadmap`}
+                        className="absolute inset-0 bg-black/65 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center p-4 text-center text-white"
+                      >
+                        <UploadCloud className="w-8 h-8 text-emerald-400 mb-2" />
+                        <span className="text-xs font-bold">Update in Roadmap Tasks</span>
+                        <span className="text-[10px] text-slate-300 mt-1 max-w-[200px]">
+                          Upload stage photos in your farm roadmap to update this thumbnail
+                        </span>
+                      </Link>
+                    </div>
+                  );
+                }
+
+                return (
+                  <Link
+                    href={`/farm/${farmId}/roadmap`}
+                    className="absolute inset-0 w-full h-full bg-[#18181B] flex flex-col items-center justify-center p-6 text-center"
+                  >
+                    {/* Default State (Visible when NOT hovered) */}
+                    <div className="flex flex-col items-center justify-center transition-all duration-300 group-hover:opacity-0 group-hover:scale-95">
+                      <div className="w-12 h-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center mb-3">
+                        <ImageIcon className="w-6 h-6 text-slate-500" />
+                      </div>
+                      <h3 className="text-[#D4D4D8] font-extrabold text-sm tracking-tight mb-1">
+                        {textNoThumbnail}
+                      </h3>
+                      <p className="text-slate-400 text-[10px] max-w-[200px] leading-relaxed">
+                        Upload a photo in any roadmap task to see it here as your crop thumbnail.
+                      </p>
+                    </div>
+
+                    {/* Hover State (Visible ONLY when hovered) */}
+                    <div className="absolute inset-0 flex flex-col items-center justify-center p-6 opacity-0 group-hover:opacity-100 transition-all duration-300 scale-95 group-hover:scale-100 bg-[#121214] border-2 border-dashed border-emerald-500/50 rounded-[24px] m-2">
+                      <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center mb-3">
+                        <UploadCloud className="w-6 h-6 text-emerald-400" />
+                      </div>
+                      <h3 className="text-white font-extrabold text-sm tracking-tight mb-0.5">
+                        Upload Task Photo
+                      </h3>
+                      <p className="text-slate-400 text-[10px]">
+                        Open Roadmap & Add Progress Photo
+                      </p>
+                    </div>
+                  </Link>
+                );
+              })()}
             </div>
           </div>
           
@@ -736,10 +886,17 @@ export default function FarmHomePage() {
         <div className="xl:col-span-3 flex flex-col gap-6">
           
           {/* GEMINI CROP ANALYSIS */}
-          <div className="bg-white rounded-[24px] border border-slate-200 p-6 shadow-sm flex flex-col min-h-[320px]">
-            <div className="flex items-center gap-2 mb-4">
-              <Sparkles className="w-5 h-5 text-indigo-600 animate-pulse" />
-              <h2 className="text-lg font-black text-slate-900">{textGeminiAnalysis}</h2>
+          <div className="bg-white rounded-[24px] border border-slate-200 p-6 shadow-sm flex flex-col min-h-[220px]">
+            <div className="flex items-center justify-between gap-2 mb-3">
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-5 h-5 text-indigo-600 animate-pulse" />
+                <h2 className="text-lg font-black text-slate-900">{textGeminiAnalysis}</h2>
+              </div>
+              {currentStageInfo && (
+                <span className="text-[10px] font-extrabold uppercase tracking-wide bg-indigo-50 border border-indigo-200/60 text-indigo-700 px-2.5 py-1 rounded-full truncate max-w-[140px]">
+                  {currentStageInfo.stageName}
+                </span>
+              )}
             </div>
             
             {loadingAnalysis ? (
@@ -747,31 +904,22 @@ export default function FarmHomePage() {
                 <Loader2 className="w-6 h-6 text-indigo-600 animate-spin" />
                 <span className="text-xs text-slate-400 font-bold">{textConsulting}</span>
               </div>
-            ) : aiAnalysis === "NO_TODAY_UPLOAD" ? (
-              <div className="flex flex-col items-center justify-center p-6 bg-indigo-50/10 rounded-2xl border border-dashed border-indigo-200 text-center gap-3 my-auto">
-                <div className="w-12 h-12 bg-indigo-100 text-indigo-600 rounded-xl flex items-center justify-center border border-indigo-200">
-                  <Sparkles className="w-6 h-6 text-indigo-600 animate-pulse" />
-                </div>
-                <div>
-                  <h3 className="font-bold text-slate-800 text-sm">{textUploadReport}</h3>
-                  <p className="text-slate-500 text-[11px] mt-1.5 leading-relaxed max-w-[220px]">
-                    {textUploadReportDesc}
-                  </p>
-                </div>
-                <Link 
-                  href={`/farm/${farmId}/disease`}
-                  className="mt-1 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white text-xs font-black rounded-xl transition-all duration-200 shadow-sm"
-                >
-                  {textUploadNow}
-                </Link>
-              </div>
             ) : (
-              <div className="flex flex-col gap-4 my-auto">
-                <div className="text-slate-700 text-sm leading-relaxed whitespace-pre-line bg-indigo-50/30 p-4 rounded-2xl border border-indigo-50/50">
+              <div className="flex flex-col gap-3 my-auto">
+                <div className="text-slate-700 text-xs sm:text-sm leading-relaxed whitespace-pre-line bg-indigo-50/40 p-4 rounded-2xl border border-indigo-100/60 font-medium">
                   <DynamicText text={aiAnalysis} />
                 </div>
-                <div className="text-[10px] text-indigo-500 font-black uppercase tracking-widest flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-ping" /> {textRealtimeInsight}
+                <div className="text-[10px] text-indigo-500 font-black uppercase tracking-widest flex items-center justify-between mt-1">
+                  <span className="flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-ping" /> {textRealtimeInsight}
+                  </span>
+                  <Link
+                    href={`/farm/${farmId}/roadmap`}
+                    className="text-[11px] font-bold text-indigo-600 hover:text-indigo-800 flex items-center gap-1"
+                  >
+                    <span>View Roadmap</span>
+                    <ArrowRight className="w-3 h-3" />
+                  </Link>
                 </div>
               </div>
             )}

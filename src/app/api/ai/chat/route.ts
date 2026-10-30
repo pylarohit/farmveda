@@ -57,15 +57,8 @@ YOUR RULES:
 8. ${modeInstruction}
 9. Only refuse if the question is completely unrelated to farming (movies, politics, sports). For anything farming-related, always answer fully.`;
 
-    // ── Call Gemini ───────────────────────────────────────────────────────────
-    const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({
-      model: "gemini-2.5-flash",
-      systemInstruction: systemPrompt,
-    });
-
     // Build conversation history
-    const contents = [];
+    const contents: any[] = [];
     if (Array.isArray(history)) {
       for (const msg of history.slice(-8)) {
         if (msg.role && msg.content) {
@@ -87,8 +80,25 @@ YOUR RULES:
     }
     contents.push({ role: "user", parts: userParts });
 
-    const result = await model.generateContent({ contents });
-    const text = result.response.text();
+    // ── Call Gemini ───────────────────────────────────────────────────────────
+    const genAI = new GoogleGenerativeAI(apiKey);
+    let text = "";
+    try {
+      const model = genAI.getGenerativeModel({
+        model: "gemini-1.5-flash",
+        systemInstruction: systemPrompt,
+      });
+      const result = await model.generateContent({ contents });
+      text = result.response.text();
+    } catch (primaryErr) {
+      console.warn("[Gemini 1.5 error, falling back to 2.0-flash]:", primaryErr);
+      const fallbackModel = genAI.getGenerativeModel({
+        model: "gemini-2.0-flash",
+        systemInstruction: systemPrompt,
+      });
+      const result = await fallbackModel.generateContent({ contents });
+      text = result.response.text();
+    }
 
     return NextResponse.json({ text }, { status: 200 });
 
