@@ -7,8 +7,15 @@ import { createClient } from "@/lib/supabase/client";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import React, { useEffect, useState, useCallback, useMemo } from "react";
-import { LuActivity, LuVideo } from "react-icons/lu";
-import { CheckCircle2 } from "lucide-react";
+import { LuActivity, LuVideo, LuEye } from "react-icons/lu";
+import { CheckCircle2, Trash2, Leaf, ExternalLink, FileText } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { DoctorBookingService, DoctorBookingSession } from "@/lib/doctorBooking";
 import { toast } from "sonner";
 
@@ -19,6 +26,7 @@ const ConfirmTab = () => {
   const { setActiveSession } = useSessionStore();
   const [acceptedSessions, setAcceptedSessions] = useState<DoctorBookingSession[]>([]);
   const [loading, setLoading] = useState(false);
+  const [viewingSession, setViewingSession] = useState<DoctorBookingSession | null>(null);
 
   const doctorId = mentor?.id || "d718072e-4496-4227-929a-b0bffaf8d9a7";
 
@@ -88,6 +96,21 @@ const ConfirmTab = () => {
     }
   };
 
+  const handleDelete = async (sessionId: string) => {
+    if (!window.confirm("Are you sure you want to cancel and delete this confirmed session?")) {
+      return;
+    }
+    try {
+      setAcceptedSessions((prev) => prev.filter((s) => String(s.id) !== String(sessionId)));
+      await DoctorBookingService.deleteBooking(sessionId);
+      toast.success("Session deleted successfully.");
+    } catch (err) {
+      console.error("Error deleting session:", err);
+      toast.error("Failed to delete session");
+      fetchAccepted(false);
+    }
+  };
+
   return (
     <div className="bg-white">
       {loading && acceptedSessions.length === 0 ? (
@@ -134,10 +157,19 @@ const ConfirmTab = () => {
                 <span className="text-xs font-semibold text-emerald-800 bg-emerald-50 px-2.5 py-1 rounded-md">
                   {session.topic || "Crop Consultation"}
                 </span>
+                {session.crop_image_url && (
+                  <span className="block text-[10px] font-bold text-emerald-700 bg-emerald-100/80 px-2 py-0.5 rounded-full mt-1 w-fit mx-auto">
+                    🌿 Leaf Photo Attached
+                  </span>
+                )}
                 {session.notes && (
-                  <p className="text-xs text-slate-500 truncate max-w-[180px] mx-auto mt-1" title={session.notes}>
-                    {session.notes}
-                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setViewingSession(session)}
+                    className="font-inter tracking-tight cursor-pointer text-xs text-emerald-700 hover:text-emerald-800 hover:underline mt-1 flex items-center justify-center gap-1 mx-auto"
+                  >
+                    View Note & Diagnosis <LuEye className="inline w-3 h-3" />
+                  </button>
                 )}
               </div>
 
@@ -193,11 +225,120 @@ const ConfirmTab = () => {
                 >
                   <CheckCircle2 className="w-4 h-4 text-emerald-600" />
                 </Button>
+
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="text-xs text-slate-400 hover:text-red-600 hover:bg-red-50 cursor-pointer p-1.5"
+                  onClick={() => handleDelete(session.id)}
+                  title="Delete this confirmed session"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </Button>
               </div>
             </div>
           ))}
         </div>
       )}
+
+      {/* Consultation Details & Crop Diagnosis Dialog */}
+      <Dialog open={!!viewingSession} onOpenChange={(open) => !open && setViewingSession(null)}>
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+          {viewingSession && (
+            <>
+              <DialogHeader>
+                <DialogTitle className="text-lg font-bold font-sora text-slate-900 flex items-center gap-2">
+                  <FileText className="w-5 h-5 text-emerald-600" />
+                  <span>Confirmed Consultation - Problem & Diagnosis</span>
+                </DialogTitle>
+              </DialogHeader>
+
+              <div className="space-y-4 my-2">
+                {/* Farmer Info Header */}
+                <div className="flex items-center gap-3 p-3 bg-slate-50 border border-slate-200 rounded-xl">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={viewingSession.studentAvatar || "/user.png"}
+                    alt={viewingSession.studentName || "Farmer"}
+                    className="w-12 h-12 rounded-full object-cover border border-slate-300 bg-white"
+                  />
+                  <div className="min-w-0 flex-1">
+                    <p className="font-bold text-slate-900 text-sm capitalize">
+                      {viewingSession.studentName || "Farmer"}
+                    </p>
+                    <p className="text-xs text-slate-500">{viewingSession.studentEmail || "farmer@farmveda.in"}</p>
+                    <p className="text-[11px] text-slate-400 mt-0.5">
+                      Scheduled: {viewingSession.session_date} at {viewingSession.session_time || "10:00"}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-xs font-bold text-emerald-800 bg-emerald-100/90 px-3 py-1 rounded-full">
+                      Confirmed
+                    </span>
+                  </div>
+                </div>
+
+                {/* Attached Crop Leaf Photo */}
+                {viewingSession.crop_image_url && (
+                  <div className="bg-slate-900 rounded-2xl overflow-hidden p-3 border border-slate-800 shadow-md">
+                    <div className="flex items-center justify-between px-1 mb-2">
+                      <span className="text-xs font-bold text-emerald-400 uppercase tracking-wider flex items-center gap-1.5">
+                        <Leaf className="w-3.5 h-3.5" /> Attached Field Leaf Photo
+                      </span>
+                      <a
+                        href={viewingSession.crop_image_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs text-slate-300 hover:text-white underline flex items-center gap-1 font-inter"
+                      >
+                        Open full size <ExternalLink className="w-3 h-3" />
+                      </a>
+                    </div>
+                    <div className="relative aspect-video max-h-72 w-full rounded-xl overflow-hidden bg-black flex items-center justify-center">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={viewingSession.crop_image_url}
+                        alt="Diseased Leaf Scan"
+                        className="max-h-full max-w-full object-contain rounded-lg"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* Diagnostic Details & Notes */}
+                <div className="bg-emerald-50/50 border border-emerald-100 rounded-2xl p-4">
+                  <div className="flex items-center gap-2 mb-2 pb-2 border-b border-emerald-200/60">
+                    <Leaf className="w-4 h-4 text-emerald-700" />
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-emerald-900">
+                      Problem Details & AI Diagnostic Advisory
+                    </h4>
+                  </div>
+                  <p className="text-xs text-slate-700 whitespace-pre-line font-medium leading-relaxed">
+                    {viewingSession.notes || "No additional notes provided."}
+                  </p>
+                </div>
+              </div>
+
+              <DialogFooter className="flex items-center justify-between sm:justify-between w-full pt-2">
+                <Button variant="outline" onClick={() => setViewingSession(null)}>
+                  Close
+                </Button>
+                <Button
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white flex items-center gap-1.5"
+                  onClick={() => {
+                    setViewingSession(null);
+                    const roomTarget = viewingSession.call_url || `room-${viewingSession.id}`;
+                    router.push(`/room/${roomTarget}`);
+                  }}
+                >
+                  <LuVideo className="w-4 h-4" />
+                  <span>Join Video Call</span>
+                </Button>
+              </DialogFooter>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

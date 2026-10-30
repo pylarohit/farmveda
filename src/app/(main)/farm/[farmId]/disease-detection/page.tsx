@@ -1,7 +1,11 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { useLanguage, DynamicText } from "@/context/LanguageProvider";
+import { createClient } from "@/lib/supabase/client";
+import { DBMentor } from "@/lib/types/allTypes";
+import { defaultCropDoctors } from "@/lib/functions/dbActions";
 import {
   UploadCloud,
   Camera,
@@ -28,8 +32,14 @@ import {
   VolumeX,
   ShoppingBag,
   Loader2,
-  ExternalLink
-} from "lucide-react"; import { IKContext, IKUpload } from "imagekitio-react";
+  ExternalLink,
+  Stethoscope,
+  Star,
+  Calendar,
+  ArrowRight,
+  UserCheck,
+} from "lucide-react";
+import { IKContext, IKUpload } from "imagekitio-react";
 
 const publicKey = process.env.NEXT_PUBLIC_IMAGEKIT_PUBLIC_KEY;
 const urlEndpoint = process.env.NEXT_PUBLIC_IMAGEKIT_URL_ENDPOINT;
@@ -47,8 +57,11 @@ const authenticator = async () => {
 };
 export default function DiseaseDetectionPage() {
   const { lang } = useLanguage();
+  const router = useRouter();
+  const supabase = createClient();
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [scannedImageBase64, setScannedImageBase64] = useState<string | null>(null);
   const [scanState, setScanState] = useState<"idle" | "camera" | "scanning" | "results" | "error">("idle");
   const [activeStep, setActiveStep] = useState<number>(0);
   const [activeTab, setActiveTab] = useState<"organic" | "chemical" | "protocol" | "preventive">("organic");
@@ -57,6 +70,8 @@ export default function DiseaseDetectionPage() {
   const [history, setHistory] = useState<any[]>([]);
   const [products, setProducts] = useState<any[]>([]);
   const [loadingProducts, setLoadingProducts] = useState(false);
+  const [doctors, setDoctors] = useState<DBMentor[]>([]);
+  const [loadingDoctors, setLoadingDoctors] = useState(false);
 
   // Camera state
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -65,6 +80,114 @@ export default function DiseaseDetectionPage() {
   const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
   const [facingMode, setFacingMode] = useState<"environment" | "user">("environment");
   const [isSpeaking, setIsSpeaking] = useState(false);
+
+  // Load only real crop doctors from Supabase
+  useEffect(() => {
+    async function loadDoctors() {
+      setLoadingDoctors(true);
+      try {
+        const { data, error } = await supabase
+          .from("mentors")
+          .select("*")
+          .order("created_at", { ascending: false });
+
+        if (!error && data) {
+          setDoctors(data as DBMentor[]);
+        } else {
+          setDoctors([]);
+        }
+      } catch (err) {
+        console.warn("Failed to load crop doctors:", err);
+        setDoctors([]);
+      } finally {
+        setLoadingDoctors(false);
+      }
+    }
+    loadDoctors();
+  }, [supabase]);
+
+  // Format problem details, AI feedback, and image for doctor consultation
+  const handleConsultDoctor = (doctor: DBMentor) => {
+    if (!result) return;
+
+    const cropName = result.cropName || "Crop";
+    const diseaseName = result.diseaseName || "Crop Disease";
+    const severity = result.severity || "Moderate";
+    const confidence = result.confidence ? `${result.confidence}%` : "High";
+
+    const symptomsList =
+      result.visibleSymptoms && result.visibleSymptoms.length > 0
+        ? result.visibleSymptoms.map((s: string) => `• ${s}`).join("\n")
+        : "Foliar lesions and discoloration observed on leaves";
+
+    const organicList =
+      result.organicTreatment && result.organicTreatment.length > 0
+        ? result.organicTreatment.slice(0, 3).map((s: string) => `• ${s}`).join("\n")
+        : "Apply organic neem oil / bio-fungicide";
+
+    const chemicalList =
+      result.chemicalTreatment && result.chemicalTreatment.length > 0
+        ? result.chemicalTreatment
+            .map(
+              (c: any) =>
+                `• ${c.medicine || c} (Dosage: ${c.dosage || "As per pack"})${
+                  c.howToUse ? ` - ${c.howToUse}` : ""
+                }`
+            )
+            .join("\n")
+        : "Consult doctor for chemical prescription";
+
+    const urgentList =
+      result.doToday && result.doToday.length > 0
+        ? result.doToday.map((s: string) => `• ${s}`).join("\n")
+        : "Quarantine affected plants and avoid overhead watering";
+
+    const formattedNote = 
+`[🌿 Crop Disease Consultation Request]
+🌱 Crop: ${cropName}
+🦠 Detected Issue: ${diseaseName} (Severity: ${severity}, Confidence: ${confidence})
+
+📋 Observed Symptoms:
+${symptomsList}
+
+💡 AI Diagnostic Advisory:
+- What Happened: ${result.whatHappened || result.description || "Pathogen activity detected on crop foliage."}
+- Urgent Action:
+${urgentList}
+- Recommended Organic Solutions:
+${organicList}
+- Store Medicine Solutions:
+${chemicalList}
+
+📷 Leaf Scan Photo: Attached for Doctor's Inspection`;
+
+    const bestImageUrl = previewUrl?.startsWith("http")
+      ? previewUrl
+      : scannedImageBase64 || previewUrl || "";
+
+    const consultationData = {
+      cropName,
+      diseaseName,
+      severity,
+      confidence,
+      notes: formattedNote,
+      imageUrl: bestImageUrl,
+      autoBook: true,
+      doctorId: doctor.id,
+      doctorName: doctor.full_name,
+      timestamp: Date.now(),
+    };
+
+    if (typeof window !== "undefined") {
+      sessionStorage.setItem("crop_consultation_data", JSON.stringify(consultationData));
+    }
+
+    router.push(
+      `/home/doctor-connect/${doctor.id}?autoBook=true&crop=${encodeURIComponent(
+        cropName
+      )}&disease=${encodeURIComponent(diseaseName)}`
+    );
+  };
 
   // Load history from localStorage
   useEffect(() => {
@@ -112,6 +235,7 @@ export default function DiseaseDetectionPage() {
   const selectHistoryItem = (item: any) => {
     setResult(item.result);
     setPreviewUrl(item.imageUrl);
+    setScannedImageBase64(item.imageUrl);
     setScanState("results");
     setErrorMsg("");
   };
@@ -215,6 +339,7 @@ export default function DiseaseDetectionPage() {
         const reader = new FileReader();
         reader.onloadend = () => {
           const base64data = reader.result as string;
+          setScannedImageBase64(base64data);
           const newHistoryItem = {
             id: Date.now().toString(),
             timestamp: new Date().toLocaleDateString(undefined, {
@@ -244,6 +369,7 @@ export default function DiseaseDetectionPage() {
 
   const handleImageKitSuccess = async (res: any) => {
     setPreviewUrl(res.url);
+    setScannedImageBase64(res.url);
     setScanState("scanning");
     setErrorMsg("");
     setResult(null);
@@ -818,6 +944,110 @@ export default function DiseaseDetectionPage() {
 
                   </div>
                 </div>
+
+                {/* ──────────── SUGGESTED CROP DOCTORS SECTION (REAL DOCTORS ONLY) ──────────── */}
+                {(doctors.length > 0 || loadingDoctors) && (
+                  <div className="bg-white/95 border border-slate-200/80 rounded-[28px] p-6 sm:p-7 shadow-sm w-full mt-4">
+                    {/* Clean Header: Heading on left, View All on right */}
+                    <div className="flex items-center justify-between mb-5 pb-3 border-b border-slate-100">
+                      <h3 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2.5 font-sora">
+                        <Stethoscope className="w-6 h-6 text-emerald-600 shrink-0" />
+                        <span>Suggested Crop Doctors</span>
+                      </h3>
+
+                      <button
+                        type="button"
+                        onClick={() => router.push("/home/doctor-connect")}
+                        className="text-xs sm:text-sm font-bold text-emerald-700 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100/70 px-4 py-2 rounded-xl transition-all flex items-center gap-1.5 border border-emerald-200/70 shadow-2xs cursor-pointer"
+                      >
+                        <span>View All Doctors</span>
+                        <ChevronRight className="w-4 h-4" />
+                      </button>
+                    </div>
+
+                    {/* Real Doctor Cards */}
+                    {loadingDoctors && doctors.length === 0 ? (
+                      <div className="py-8 flex flex-col items-center justify-center text-slate-400">
+                        <Loader2 className="w-6 h-6 animate-spin text-emerald-600 mb-2" />
+                        <p className="text-xs font-semibold">Loading crop doctors...</p>
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                        {doctors.slice(0, 3).map((doc) => {
+                          const docName = doc.full_name?.startsWith("Dr.") ? doc.full_name : `Dr. ${doc.full_name}`;
+                          return (
+                            <div
+                              key={doc.id}
+                              className="bg-white rounded-2xl border border-slate-200 hover:border-emerald-500/70 p-5 shadow-xs hover:shadow-md transition-all flex flex-col justify-between group"
+                            >
+                              <div>
+                                {/* Doctor Avatar + Online Status + Name */}
+                                <div className="flex items-start gap-3.5 mb-3">
+                                  <div className="relative shrink-0">
+                                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                                    <img
+                                      src={doc.avatar || "/user.png"}
+                                      alt={doc.full_name}
+                                      className="w-13 h-13 rounded-full object-cover border-2 border-emerald-100 bg-slate-50 shadow-xs"
+                                      onError={(e) => {
+                                        (e.target as HTMLImageElement).src = "/user.png";
+                                      }}
+                                    />
+                                    <span
+                                      className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-emerald-500 border-2 border-white rounded-full"
+                                      title="Available Today"
+                                    />
+                                  </div>
+
+                                  <div className="min-w-0 flex-1">
+                                    <h4 className="font-bold text-slate-900 text-base truncate font-sora" title={docName}>
+                                      {docName}
+                                    </h4>
+                                    <p className="text-xs text-slate-500 font-medium line-clamp-1 mt-0.5">
+                                      {doc.current_position || "Crop Specialist & Agronomist"}
+                                    </p>
+                                    <div className="flex items-center gap-2 mt-1.5">
+                                      <span className="inline-flex items-center gap-1 text-[11px] font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200/60">
+                                        <Star className="w-3 h-3 fill-amber-500 text-amber-500" />
+                                        {doc.rating || 4.9}
+                                      </span>
+                                      <span className="text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-100">
+                                        Available Now
+                                      </span>
+                                    </div>
+                                  </div>
+                                </div>
+
+                                {/* Specialization Tags */}
+                                <div className="flex flex-wrap gap-1.5 mb-4">
+                                  {(doc.expertise || ["Plant Pathology", "Organic Care"]).slice(0, 3).map((exp: string, idx: number) => (
+                                    <span
+                                      key={idx}
+                                      className="text-[10px] font-bold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-md"
+                                    >
+                                      {exp}
+                                    </span>
+                                  ))}
+                                </div>
+                              </div>
+
+                              {/* Booking Action Button */}
+                              <button
+                                type="button"
+                                onClick={() => handleConsultDoctor(doc)}
+                                className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs py-2.5 px-4 rounded-xl flex items-center justify-center gap-2 shadow-xs transition-all hover:shadow-md cursor-pointer group-hover:bg-emerald-600 active:scale-98"
+                              >
+                                <Stethoscope className="w-4 h-4" />
+                                <span>Consult Doctor</span>
+                                <ArrowRight className="w-3.5 h-3.5 ml-auto opacity-70 group-hover:translate-x-0.5 transition-transform" />
+                              </button>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 {/* Google Shopping Products via SerpApi */}
                 <div className="bg-white/80 border border-slate-200/60 rounded-[32px] p-6 shadow-md w-full mt-4">

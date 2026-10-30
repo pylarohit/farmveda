@@ -6,7 +6,7 @@ import { useUserData } from "@/context/UserDataProvider";
 import { DoctorBookingService, DoctorBookingSession } from "@/lib/doctorBooking";
 import { toast } from "sonner";
 import { LuCopy, LuChevronLeft } from "react-icons/lu";
-import { CheckCircle2 } from "lucide-react";
+import { CheckCircle2, AlertTriangle, RefreshCw } from "lucide-react";
 
 interface VideoRoomProps {
   params:
@@ -19,6 +19,7 @@ export default function VideoRoom({ params }: VideoRoomProps) {
   const { user, mentor } = useUserData();
   const meetingContainerRef = useRef<HTMLDivElement>(null);
   const zpRef = useRef<any>(null);
+  const isJoinedSuccessfullyRef = useRef(false);
 
   // Unwrap params safely for Next.js App Router (handles both Promise and plain object, and roomId or roomid)
   const unwrappedParams =
@@ -30,11 +31,15 @@ export default function VideoRoom({ params }: VideoRoomProps) {
     (unwrappedParams as any)?.roomId ||
     (unwrappedParams as any)?.roomid ||
     "";
-  const cleanRoomId = decodeURIComponent(rawRoomId).trim();
+  // Sanitize room ID so it only contains valid characters (alphanumeric, -, _)
+  const cleanRoomId = decodeURIComponent(rawRoomId)
+    .trim()
+    .replace(/[^a-zA-Z0-9_-]/g, "");
 
   const [session, setSession] = useState<DoctorBookingSession | null>(null);
   const [copied, setCopied] = useState(false);
   const [completing, setCompleting] = useState(false);
+  const [connectionError, setConnectionError] = useState<string | null>(null);
 
   // Determine role and display name
   const isDoctor = Boolean(mentor?.id || (mentor?.full_name && !user?.userName));
@@ -46,11 +51,11 @@ export default function VideoRoom({ params }: VideoRoomProps) {
 
   const userId = isDoctor
     ? mentor?.id
-      ? `doc-${String(mentor.id).replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 10)}`
-      : `doc-${Date.now().toString().slice(-6)}`
+      ? `doc_${String(mentor.id).replace(/[^a-zA-Z0-9_]/g, "").slice(0, 12)}`
+      : `doc_${Date.now().toString().slice(-6)}`
     : user?.id
-    ? `farmer-${String(user.id).replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 10)}`
-    : `farmer-${Date.now().toString().slice(-6)}`;
+    ? `farmer_${String(user.id).replace(/[^a-zA-Z0-9_]/g, "").slice(0, 12)}`
+    : `farmer_${Date.now().toString().slice(-6)}`;
 
   // Find corresponding session details from local / server cache
   useEffect(() => {
@@ -131,9 +136,11 @@ export default function VideoRoom({ params }: VideoRoomProps) {
 
     const initZego = async () => {
       try {
-        const appID = Number(process.env.NEXT_PUBLIC_ZEGO_APP_ID || 1446298340);
-        const serverSecret =
+        const rawAppId = process.env.NEXT_PUBLIC_ZEGO_APP_ID || "1446298340";
+        const rawSecret =
           process.env.NEXT_PUBLIC_ZEGO_SERVER_SECRET || "c0eaf4cdbf205ddce031b7897b2cc752";
+        const appID = Number(String(rawAppId).trim());
+        const serverSecret = String(rawSecret).trim();
 
         // Dynamic import so it strictly executes client-side
         const zegoModule = await import("@zegocloud/zego-uikit-prebuilt");
@@ -145,9 +152,9 @@ export default function VideoRoom({ params }: VideoRoomProps) {
         meetingContainerRef.current.innerHTML = "";
 
         const effectiveUserId =
-          userId || `user_${Math.random().toString(36).substring(2, 9)}`;
-        const effectiveUserName =
-          userName || `Guest_${Math.random().toString(36).substring(2, 7)}`;
+          String(userId).replace(/[^a-zA-Z0-9_]/g, "") ||
+          `user_${Math.random().toString(36).substring(2, 9)}`;
+        const effectiveUserName = userName || "Participant";
 
         // Generate Kit Token (valid for 7200 seconds / 2 hours)
         const kitToken = ZegoUIKitPrebuilt.generateKitTokenForTest(
@@ -165,7 +172,7 @@ export default function VideoRoom({ params }: VideoRoomProps) {
         const zp = ZegoUIKitPrebuilt.create(kitToken);
         zpRef.current = zp;
 
-        // Join room using VideoConference scenario (clean WebRTC, no ZIM plugin dependency)
+        // Join room directly using VideoConference scenario (clean WebRTC, no token mismatch)
         zp.joinRoom({
           container: meetingContainerRef.current,
           sharedLinks: [
@@ -180,24 +187,32 @@ export default function VideoRoom({ params }: VideoRoomProps) {
           scenario: {
             mode: ZegoUIKitPrebuilt.VideoConference,
           },
-          showPreJoinView: true,
+          showPreJoinView: false,
           turnOnMicrophoneWhenJoining: true,
           turnOnCameraWhenJoining: true,
           showMyCameraToggleButton: true,
           showMyMicrophoneToggleButton: true,
           showAudioVideoSettingsButton: true,
           showScreenSharingButton: true,
-          showTextChat: true, // Enables real-time chat alongside video
+          showTextChat: true,
           showUserList: true,
           showRoomTimer: true,
+          onJoinRoom: () => {
+            isJoinedSuccessfullyRef.current = true;
+            setConnectionError(null);
+          },
           onLeaveRoom: () => {
-            handleLeaveOnly();
+            // Only auto-redirect if successfully joined and user leaves
+            if (isJoinedSuccessfullyRef.current) {
+              handleLeaveOnly();
+            }
           },
         });
       } catch (err: any) {
         console.error("ZegoCloud Initialization Error:", err);
         if (mounted) {
-          toast.error("Failed to connect video call: " + (err?.message || "Check network/credentials"));
+          setConnectionError(err?.message || "AppID / ServerSecret configuration error");
+          toast.error("Failed to connect video call: " + (err?.message || "Check ZEGOCLOUD AppID"));
         }
       }
     };
@@ -212,7 +227,7 @@ export default function VideoRoom({ params }: VideoRoomProps) {
         } catch {}
       }
     };
-  }, [cleanRoomId]);
+  }, [cleanRoomId, userId, userName]);
 
   return (
     <div className="flex flex-col h-screen w-screen bg-slate-950 text-white overflow-hidden font-inter select-none">
@@ -275,6 +290,43 @@ export default function VideoRoom({ params }: VideoRoomProps) {
           className="w-full h-full"
           style={{ width: "100%", height: "calc(100vh - 56px)", minHeight: "calc(100vh - 56px)" }}
         />
+
+        {/* Connection Error Diagnostic Overlay */}
+        {connectionError && (
+          <div className="absolute inset-0 flex items-center justify-center bg-slate-950/95 z-40 p-4">
+            <div className="max-w-md w-full bg-slate-900 border border-red-500/30 rounded-xl p-6 text-center shadow-2xl">
+              <div className="w-12 h-12 bg-red-500/10 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                <AlertTriangle className="w-6 h-6" />
+              </div>
+              <h3 className="text-lg font-bold text-white mb-2">ZEGOCLOUD Connection Error</h3>
+              <p className="text-sm text-slate-300 mb-4">{connectionError}</p>
+
+              <div className="bg-slate-950 p-3 rounded-lg text-xs font-mono text-slate-400 text-left mb-5 space-y-1">
+                <p><span className="text-slate-500">AppID:</span> <span className="text-slate-200">{process.env.NEXT_PUBLIC_ZEGO_APP_ID || "1446298340"}</span></p>
+                <p><span className="text-slate-500">Reason:</span> <span className="text-red-400">ZEGOCLOUD cloud server rejected this AppID (20012 - appid invalid)</span></p>
+                <p className="text-amber-400 mt-2 font-sans font-medium text-[11px]">
+                  Please verify your AppID and ServerSecret in <a href="https://console.zegocloud.com/" target="_blank" rel="noreferrer" className="underline text-emerald-400">console.zegocloud.com</a> under Project Management.
+                </p>
+              </div>
+
+              <div className="flex gap-3 justify-center">
+                <button
+                  onClick={() => window.location.reload()}
+                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold rounded-lg transition-colors cursor-pointer flex items-center gap-1.5"
+                >
+                  <RefreshCw className="w-3.5 h-3.5" />
+                  <span>Retry Connection</span>
+                </button>
+                <button
+                  onClick={handleLeaveOnly}
+                  className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold rounded-lg transition-colors cursor-pointer"
+                >
+                  Back to Bookings
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

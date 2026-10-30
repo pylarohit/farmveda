@@ -19,6 +19,13 @@ export interface DoctorBookingSession {
   session_time: string;
   notes: string;
   call_url: string | null;
+  crop_image_url?: string | null;
+  crop_details?: {
+    cropName?: string;
+    diseaseName?: string;
+    severity?: string;
+    confidence?: string;
+  } | null;
 }
 
 const STORAGE_KEY = "farmveda_active_doctor_sessions";
@@ -44,6 +51,19 @@ function resolveStatus(
   if (rS > rL) return (serverStatus as any);
   if (rL > 0) return (localStatus as any);
   return (serverStatus as any) || "pending";
+}
+
+// Helper to extract crop image url if embedded in note or direct
+export function extractCropImageUrl(notes?: string, directUrl?: string | null): string | null {
+  if (directUrl && typeof directUrl === "string" && directUrl.trim().length > 0) {
+    return directUrl;
+  }
+  if (!notes) return null;
+  const dataMatch = notes.match(/data:image\/[a-zA-Z]+;base64,[A-Za-z0-9+/=]+/);
+  if (dataMatch) return dataMatch[0];
+  const urlMatch = notes.match(/(https?:\/\/[^\s]+(?:\.jpg|\.jpeg|\.png|\.webp|ik\.imagekit\.io[^\s]+))/i);
+  if (urlMatch) return urlMatch[0];
+  return null;
 }
 
 export const DoctorBookingService = {
@@ -121,6 +141,8 @@ export const DoctorBookingService = {
     sessionType: string;
     date: Date;
     notes: string;
+    crop_image_url?: string | null;
+    crop_details?: any;
   }): Promise<DoctorBookingSession> {
     const supabase = createClient();
     const sessionId = `sess-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`;
@@ -133,6 +155,8 @@ export const DoctorBookingService = {
         : params.sessionType === "30"
         ? "30 min Deep Dive"
         : "45 min Full Consultation";
+
+    const resolvedCropImage = extractCropImageUrl(params.notes, params.crop_image_url);
 
     const sessionObj: DoctorBookingSession = {
       id: sessionId,
@@ -150,6 +174,8 @@ export const DoctorBookingService = {
       session_time: timeStr,
       notes: params.notes,
       call_url: `room-${sessionId}`,
+      crop_image_url: resolvedCropImage,
+      crop_details: params.crop_details || null,
     };
 
     // 1. Save locally for instant reactivity
@@ -179,6 +205,8 @@ export const DoctorBookingService = {
           session_time: timeStr,
           notes: params.notes,
           call_url: sessionObj.call_url,
+          crop_image_url: resolvedCropImage,
+          crop_details: params.crop_details || null,
         },
       };
 
@@ -321,6 +349,74 @@ export const DoctorBookingService = {
     await this.updateStatus(sessionId, "completed");
   },
 
+  // Completely delete a booking session (from local storage, messages, and mentor_sessions)
+  async deleteBooking(sessionId: string | number) {
+    const supabase = createClient();
+    const strId = String(sessionId).trim();
+
+    // 1. Remove from local storage
+    const current = this.getLocalSessions();
+    const remaining = current.filter(
+      (s) =>
+        String(s.id) !== strId &&
+        String(s.call_url) !== strId &&
+        !strId.includes(String(s.id)) &&
+        (!s.call_url || !strId.includes(String(s.call_url)))
+    );
+    this.saveLocalSessions(remaining);
+
+    // 2. Delete from Supabase messages table
+    try {
+      const { data: msgs, error: fetchErr } = await supabase
+        .from("messages")
+        .select("id, listing_details")
+        .eq("type", BOOKING_MESSAGE_TYPE);
+
+      if (!fetchErr && msgs && msgs.length > 0) {
+        for (const m of msgs) {
+          const det = (m.listing_details as any) || {};
+          const isMatch =
+            String(det.sessionId) === strId ||
+            String(m.id) === strId ||
+            String(det.call_url) === strId ||
+            strId.includes(String(det.sessionId || "")) ||
+            (det.sessionId && strId.includes(String(det.sessionId))) ||
+            (det.call_url && strId.includes(String(det.call_url)));
+
+          if (isMatch) {
+            await supabase.from("messages").delete().eq("id", m.id);
+          }
+        }
+      }
+    } catch (e: any) {
+      console.warn("Error deleting booking from messages in Supabase:", e?.message);
+    }
+
+    // 3. Try mentor_sessions delete if present
+    try {
+      if (/^\d+$/.test(strId)) {
+        await supabase.from("mentor_sessions").delete().eq("id", Number(strId));
+      } else {
+        await supabase.from("mentor_sessions").delete().eq("call_url", strId);
+      }
+    } catch {
+      // Ignored
+    }
+
+    // Dispatch global events for instant sync across tabs and windows
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("doctor_session_changed"));
+      window.dispatchEvent(new Event("storage"));
+      try {
+        if ("BroadcastChannel" in window) {
+          const bc = new BroadcastChannel(BROADCAST_CHANNEL_NAME);
+          bc.postMessage({ type: "SYNC", timestamp: Date.now() });
+          bc.close();
+        }
+      } catch {}
+    }
+  },
+
   // Get sessions for a doctor
   async getSessionsForDoctor(mentorId?: string): Promise<DoctorBookingSession[]> {
     const supabase = createClient();
@@ -376,6 +472,8 @@ export const DoctorBookingService = {
             session_time: det.session_time || "10:00",
             notes: det.notes || "",
             call_url: det.call_url || `room-${sid}`,
+            crop_image_url: extractCropImageUrl(det.notes, det.crop_image_url),
+            crop_details: det.crop_details || null,
           };
 
           const existingIdx = resultList.findIndex(
@@ -526,6 +624,8 @@ export const DoctorBookingService = {
             session_time: det.session_time || "10:00",
             notes: det.notes || "",
             call_url: det.call_url || `room-${sid}`,
+            crop_image_url: extractCropImageUrl(det.notes, det.crop_image_url),
+            crop_details: det.crop_details || null,
           };
 
           const existingIdx = resultList.findIndex(

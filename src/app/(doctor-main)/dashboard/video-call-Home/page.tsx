@@ -6,7 +6,8 @@ import React, { useState } from "react";
 import VideoCard from "../../_components/Video-card";
 import { LuMessageSquare, LuVideo, LuX } from "react-icons/lu";
 import { Button } from "@/components/ui/button";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, Leaf, ExternalLink } from "lucide-react";
+import { extractCropImageUrl } from "@/lib/doctorBooking";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { useRouter } from "next/navigation";
@@ -88,28 +89,57 @@ const VideoCallHome = () => {
         <LuVideo className="inline ml-2 text-emerald-600" />{" "}
       </h2>
 
-      <div className="flex items-center gap-4 mt-6 justify-center bg-emerald-50/80 border border-emerald-200 p-4 rounded-xl w-fit mx-auto shadow-xs">
-        <Image
-          src={activeSession.avatar || "/user.png"}
-          alt="avatar"
-          height={64}
-          width={64}
-          className="h-16 w-16 rounded-full object-cover border border-emerald-300"
-        />
-        <div>
-          <p className="font-bold font-inter text-lg text-slate-900">
-            {activeSession.userName || "Farmer"}
-          </p>
-          <p className="text-slate-600 text-sm font-inter">
-            {activeSession.userEmail || "farmer@farmveda.in"}
-          </p>
-          {activeSession.notes && (
-            <p className="text-xs text-emerald-800 font-inter mt-1 max-w-md">
-              <span className="font-semibold">Farmer Note:</span> {activeSession.notes}
-            </p>
-          )}
-        </div>
-      </div>
+      {/* Farmer and Attached Crop Scan Overview */}
+      {(() => {
+        const leafImg = extractCropImageUrl(activeSession?.notes, (activeSession as any)?.crop_image_url);
+        return (
+          <div className="flex flex-col sm:flex-row items-center gap-5 mt-6 justify-center bg-emerald-50/90 border border-emerald-200 p-5 rounded-2xl max-w-2xl mx-auto shadow-xs">
+            <div className="flex items-center gap-4">
+              <Image
+                src={activeSession.avatar || "/user.png"}
+                alt="avatar"
+                height={64}
+                width={64}
+                className="h-16 w-16 rounded-full object-cover border border-emerald-300 shrink-0"
+              />
+              <div>
+                <p className="font-bold font-inter text-lg text-slate-900">
+                  {activeSession.userName || "Farmer"}
+                </p>
+                <p className="text-slate-600 text-sm font-inter">
+                  {activeSession.userEmail || "farmer@farmveda.in"}
+                </p>
+                {activeSession.notes && (
+                  <p className="text-xs text-emerald-800 font-inter mt-1 max-w-md line-clamp-3">
+                    <span className="font-semibold">Note / Diagnosis:</span> {activeSession.notes}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {leafImg && (
+              <div className="sm:border-l sm:border-emerald-200 sm:pl-5 flex flex-col items-center shrink-0">
+                <span className="text-[11px] font-bold text-emerald-800 uppercase tracking-wide flex items-center gap-1 mb-1.5">
+                  <Leaf className="w-3.5 h-3.5 text-emerald-600" /> Attached Photo
+                </span>
+                <a
+                  href={leafImg}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="relative group w-20 h-20 rounded-xl overflow-hidden border-2 border-emerald-300 shadow-sm block"
+                  title="Click to view full photo in new tab"
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={leafImg} alt="Crop Leaf Scan" className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity text-white text-[10px] font-bold">
+                    <ExternalLink className="w-4 h-4" />
+                  </div>
+                </a>
+              </div>
+            )}
+          </div>
+        );
+      })()}
 
       <div className="flex items-center gap-6 mt-8 justify-center">
         <Button

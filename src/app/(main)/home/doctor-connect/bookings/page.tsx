@@ -4,10 +4,11 @@ import SingleCard from "@/app/(main)/_components/Mentor-card";
 import { Separator } from "@/components/ui/separator";
 import { createClient } from "@/lib/supabase/client";
 import React, { useEffect, useMemo, useState, useCallback } from "react";
-import { LuChevronLeft, LuGhost, LuVideo, LuClock, LuRefreshCw } from "react-icons/lu";
+import { LuChevronLeft, LuGhost, LuVideo, LuClock, LuRefreshCw, LuTrash2 } from "react-icons/lu";
 import { FilterIcon, Loader, CheckCircle2, XCircle } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { useUserData } from "@/context/UserDataProvider";
 import { DoctorBookingService, DoctorBookingSession } from "@/lib/doctorBooking";
 
@@ -23,6 +24,7 @@ const Bookings = () => {
   const supabase = useMemo(() => createClient(), []);
   const [sessions, setSessions] = useState<DoctorBookingSession[]>([]);
   const [loading, setLoading] = useState(true);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [selectedFilter, setSelectedFilter] = useState<string>("all");
   const router = useRouter();
   const { user } = useUserData();
@@ -43,6 +45,25 @@ const Bookings = () => {
     },
     [user?.id]
   );
+
+  const handleDeleteBooking = async (sessionId: string) => {
+    if (!window.confirm("Are you sure you want to cancel and delete this booking?")) {
+      return;
+    }
+    setDeletingId(sessionId);
+    try {
+      // Optimistic state update
+      setSessions((prev) => prev.filter((s) => s.id !== sessionId));
+      await DoctorBookingService.deleteBooking(sessionId);
+      toast.success("Booking deleted successfully.");
+    } catch (err) {
+      console.error("Error deleting booking:", err);
+      toast.error("Failed to delete booking");
+      fetchInitial(false);
+    } finally {
+      setDeletingId(null);
+    }
+  };
 
   useEffect(() => {
     // Initial fetch
@@ -189,23 +210,35 @@ const Bookings = () => {
                   className="p-5 bg-white rounded-xl border border-slate-200/80 shadow-xs hover:shadow-md transition-all flex flex-col justify-between"
                 >
                   <div>
-                    {/* Header: Doctor Avatar + Name + Status */}
-                    <div className="flex items-start gap-3">
-                      <Image
-                        src={s.mentorAvatar || "/user.png"}
-                        alt={s.mentorName || "Doctor"}
-                        width={48}
-                        height={48}
-                        className="w-12 h-12 rounded-full object-cover border border-slate-200 shrink-0"
-                      />
-                      <div className="min-w-0 flex-1">
-                        <div className="font-bold font-inter text-slate-900 truncate" title={docName}>
-                          {docName}
-                        </div>
-                        <div className="text-xs text-emerald-700 font-inter font-semibold truncate">
-                          {s.topic || "Crop Consultation"}
+                    {/* Header: Doctor Avatar + Name + Delete Button */}
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-start gap-3 min-w-0 flex-1">
+                        <Image
+                          src={s.mentorAvatar || "/user.png"}
+                          alt={s.mentorName || "Doctor"}
+                          width={48}
+                          height={48}
+                          className="w-12 h-12 rounded-full object-cover border border-slate-200 shrink-0"
+                        />
+                        <div className="min-w-0 flex-1">
+                          <div className="font-bold font-inter text-slate-900 truncate" title={docName}>
+                            {docName}
+                          </div>
+                          <div className="text-xs text-emerald-700 font-inter font-semibold truncate">
+                            {s.topic || "Crop Consultation"}
+                          </div>
                         </div>
                       </div>
+
+                      <button
+                        onClick={() => handleDeleteBooking(s.id)}
+                        disabled={deletingId === s.id}
+                        title="Delete booking"
+                        aria-label="Delete booking"
+                        className="text-slate-400 hover:text-red-600 hover:bg-red-50 p-1.5 rounded-lg transition-colors cursor-pointer shrink-0 disabled:opacity-50"
+                      >
+                        <LuTrash2 className={`w-4 h-4 ${deletingId === s.id ? "animate-spin" : ""}`} />
+                      </button>
                     </div>
 
                     {/* Status Badge */}
@@ -249,18 +282,45 @@ const Bookings = () => {
                       </div>
                     </div>
 
+                    {/* Attached Crop Image & Notes */}
+                    {s.crop_image_url && (
+                      <div className="mt-3 p-2.5 bg-emerald-50/90 border border-emerald-200 rounded-lg flex items-center gap-2.5">
+                        <div className="relative w-12 h-12 rounded-md overflow-hidden border border-emerald-300 shrink-0 bg-white shadow-2xs">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={s.crop_image_url}
+                            alt="Crop Photo"
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <span className="text-[10px] font-bold text-emerald-800 uppercase tracking-wide block">
+                            Field Leaf Scan Attached
+                          </span>
+                          <a
+                            href={s.crop_image_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-[11px] text-emerald-700 hover:underline font-semibold"
+                          >
+                            View Attached Image ↗
+                          </a>
+                        </div>
+                      </div>
+                    )}
+
                     {/* Notes */}
                     {s.notes && (
-                      <div className="mt-3 text-xs font-inter text-slate-700 bg-emerald-50/50 p-2.5 rounded-lg border border-emerald-100">
-                        <span className="font-semibold text-emerald-900 block mb-0.5">Your Note:</span>
-                        <p className="line-clamp-3">{s.notes}</p>
+                      <div className="mt-2 text-xs font-inter text-slate-700 bg-slate-50 p-2.5 rounded-lg border border-slate-200/80">
+                        <span className="font-semibold text-slate-800 block mb-0.5">Your Note & AI Report:</span>
+                        <p className="line-clamp-3 whitespace-pre-line">{s.notes}</p>
                       </div>
                     )}
                   </div>
 
                   {/* Actions / Call Link */}
                   {s.status === "accepted" && (
-                    <div className="mt-4 pt-3 border-t border-slate-100">
+                    <div className="mt-4 pt-3 border-t border-slate-100 space-y-2">
                       <button
                         onClick={() => {
                           const targetRoom = s.call_url || `room-${s.id}`;
@@ -279,18 +339,33 @@ const Bookings = () => {
                       <span className="flex items-center gap-1 text-emerald-600 font-semibold">
                         <CheckCircle2 className="w-4 h-4" /> Consultation Done
                       </span>
-                      <button
-                        onClick={() => router.push(`/home/doctor-connect/${s.mentor_id}`)}
-                        className="text-emerald-700 hover:underline font-medium cursor-pointer"
-                      >
-                        Book Again
-                      </button>
+                      <div className="flex items-center gap-3">
+                        <button
+                          onClick={() => handleDeleteBooking(s.id)}
+                          className="text-slate-400 hover:text-red-600 transition-colors cursor-pointer"
+                          title="Delete this record"
+                        >
+                          Delete
+                        </button>
+                        <button
+                          onClick={() => router.push(`/home/doctor-connect/${s.mentor_id}`)}
+                          className="text-emerald-700 hover:underline font-medium cursor-pointer"
+                        >
+                          Book Again
+                        </button>
+                      </div>
                     </div>
                   )}
 
                   {s.status === "pending" && (
-                    <div className="mt-4 pt-3 border-t border-slate-100 text-xs text-amber-700 font-inter bg-amber-50/50 p-2 rounded text-center">
-                      Waiting for the doctor to confirm your booking.
+                    <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs font-inter text-amber-700 bg-amber-50/50 p-2 rounded">
+                      <span>Waiting for doctor confirmation</span>
+                      <button
+                        onClick={() => handleDeleteBooking(s.id)}
+                        className="text-red-600 hover:text-red-700 hover:underline font-medium cursor-pointer ml-2"
+                      >
+                        Cancel Booking
+                      </button>
                     </div>
                   )}
                 </div>

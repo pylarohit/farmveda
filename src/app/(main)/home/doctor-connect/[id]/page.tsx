@@ -26,7 +26,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { ChevronDownIcon, Star } from "lucide-react";
+import { ChevronDownIcon, Star, Leaf, CheckCircle2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import {
   LuBookmark,
@@ -113,10 +113,44 @@ export default function MentorConnectPage() {
   const [date, setDate] = useState<Date | undefined>(new Date());
   const [selectedTime, setSelectedTime] = useState<string>("10:00");
   const [open, setOpen] = useState(false);
+  const [attachedCropImage, setAttachedCropImage] = useState<string | null>(null);
+  const [cropProblemInfo, setCropProblemInfo] = useState<{
+    crop?: string;
+    disease?: string;
+    severity?: string;
+    confidence?: string;
+  } | null>(null);
 
   const supabase = createClient();
   const { user } = useUserData();
   const router = useRouter();
+
+  // Load pre-attached crop disease data if coming from disease detection
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const stored = sessionStorage.getItem("crop_consultation_data");
+      if (stored) {
+        const data = JSON.parse(stored);
+        if (data.notes) setNotes(data.notes);
+        if (data.imageUrl) setAttachedCropImage(data.imageUrl);
+        if (data.cropName || data.diseaseName) {
+          setCropProblemInfo({
+            crop: data.cropName,
+            disease: data.diseaseName,
+            severity: data.severity,
+            confidence: data.confidence,
+          });
+        }
+        if (data.autoBook || window.location.search.includes("autoBook=true")) {
+          setSessionType("30");
+          setOpen(true);
+        }
+      }
+    } catch (e) {
+      console.warn("Failed to parse crop consultation data:", e);
+    }
+  }, []);
 
   // fetching real mentor details from Supabase mentors table
   useEffect(() => {
@@ -211,7 +245,13 @@ export default function MentorConnectPage() {
           return finalDate;
         })(),
         notes: notes.trim(),
+        crop_image_url: attachedCropImage,
+        crop_details: cropProblemInfo,
       });
+
+      if (typeof window !== "undefined") {
+        sessionStorage.removeItem("crop_consultation_data");
+      }
 
       // Deduct credits if applicable
       if (user && typeof user.remainingCredits === "number" && user.remainingCredits >= cost) {
@@ -574,13 +614,52 @@ export default function MentorConnectPage() {
               session.
             </p>
 
+            {/* Attached Crop Problem & Leaf Image Preview */}
+            {attachedCropImage && (
+              <div className="mb-3 p-3 bg-emerald-50/90 border border-emerald-200 rounded-xl flex items-center gap-3">
+                <div className="relative w-16 h-16 rounded-lg overflow-hidden border border-emerald-300 shrink-0 bg-white shadow-xs">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={attachedCropImage}
+                    alt="Attached Crop Leaf"
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-800 uppercase tracking-wide">
+                    <Leaf className="w-3.5 h-3.5 text-emerald-600" />
+                    <span>Leaf Photo & AI Report Attached</span>
+                  </div>
+                  <p className="text-xs text-slate-800 font-bold truncate mt-0.5">
+                    {cropProblemInfo?.crop ? `${cropProblemInfo.crop} - ` : ""}
+                    {cropProblemInfo?.disease || "Disease Diagnosis Attached"}
+                  </p>
+                  <p className="text-[11px] text-slate-500 font-medium line-clamp-1">
+                    Doctor can view this photo and the diagnostic advisory
+                  </p>
+                </div>
+                <span className="text-[10px] bg-emerald-200 text-emerald-900 font-bold px-2 py-0.5 rounded-full shrink-0">
+                  Attached
+                </span>
+              </div>
+            )}
+
             {/* Notes */}
-            <label className="px-1 text-sm font-medium font-inter">Notes</label>
+            <div className="flex items-center justify-between px-1">
+              <label className="text-sm font-medium font-inter">
+                {attachedCropImage ? "Diagnostic Details & Farmer Note" : "Notes"}
+              </label>
+              {attachedCropImage && (
+                <span className="text-[11px] text-emerald-700 font-semibold">
+                  Pre-filled from Disease Scan
+                </span>
+              )}
+            </div>
             <Textarea
               placeholder="Why do you want this session?"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              className="mt-2"
+              className="mt-2 text-xs leading-relaxed min-h-[110px]"
             />
 
             {/* Date (Today only) + Time Picker */}
@@ -604,7 +683,7 @@ export default function MentorConnectPage() {
 
                 {calendarOpen && (
                   <div
-                    className="absolute top-[calc(100%+4px)] left-0 z-50 bg-white border border-slate-200 rounded-xl shadow-2xl p-2 animate-in fade-in-0 zoom-in-95"
+                    className="absolute -top-16 sm:-top-20 left-0 z-50 bg-white border border-slate-200 rounded-xl shadow-2xl p-2 animate-in fade-in-0 zoom-in-95"
                     onClick={(e) => e.stopPropagation()}
                   >
                     <Calendar
