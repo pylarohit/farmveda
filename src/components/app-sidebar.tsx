@@ -60,7 +60,7 @@ import { createClient } from "@/lib/supabase/client";
 import { usePathname, useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import { toast } from "react-hot-toast";
-import { Sparkle, Stars } from "lucide-react";
+import { Sparkle, Stars, Stethoscope } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
@@ -71,7 +71,7 @@ import {
 import Link from "next/link";
 import { LuChartNoAxesColumn } from "react-icons/lu";
 import { Highlighter } from "@/components/ui/highlighter";
-import { useLanguage } from "@/context/LanguageProvider";
+import { useLanguage, DynamicText } from "@/context/LanguageProvider";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 
 export function AppSidebar() {
@@ -325,6 +325,26 @@ export function AppSidebar() {
               </div>
             </div>
 
+            {/* Crop Doctor */}
+            <SidebarMenuItem
+              className={`flex cursor-pointer hover:scale-105 duration-200 ease-in-out rounded px-3 py-1 ${pathname.startsWith("/home/doctor-connect")
+                ? "bg-emerald-600 scale-105 hover:bg-emerald-700"
+                : "hover:bg-white/10 hover:scale-105"
+                }`}
+            >
+              <Link href="/home/doctor-connect" className="w-full">
+                <p className="flex items-center gap-3 font-medium font-inter text-base text-white tracking-wide">
+                  <Image
+                    src="/briefcase-medical.png"
+                    alt="Crop Doctor"
+                    width={20}
+                    height={20}
+                    className="object-contain brightness-0 invert"
+                  />
+                  <DynamicText text="Crop Doctor" />
+                </p>
+              </Link>
+            </SidebarMenuItem>
 
             {/* Budget Planner */}
             <SidebarMenuItem

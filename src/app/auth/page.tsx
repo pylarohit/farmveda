@@ -9,6 +9,8 @@ import Link from "next/link";
 import { Input } from "@/components/ui/input";
 import { toast } from "react-hot-toast";
 import AnimatedOTP from "@/components/forgeui/animated-otp";
+import { Store, Stethoscope } from "lucide-react";
+import { DynamicText } from "@/context/LanguageProvider";
 
 export default function AuthPage() {
     const router = useRouter();
@@ -187,17 +189,57 @@ export default function AuthPage() {
                             </button>
                         </div>
 
-                        {/* vendor link to change the login page */}
-                        <div className="w-full text-center">
-                            <p
-                                onClick={() => router.push("/vendor/login")}
-                                className="text-base font-semibold cursor-pointer text-[#475569]"
-                            >
-                                Are you a Wholesale Vendor / Buyer ?{" "}
-                                <span className="text-[#009662] hover:text-[#008556] font-bold cursor-pointer hover:underline transition-colors">
-                                    Click here!
+                        {/* Specialized Portals: Wholesale Vendor & Crop Doctor */}
+                        <div className="w-full pt-1">
+                            <div className="flex items-center justify-center gap-2 mb-3">
+                                <div className="h-[1px] flex-1 bg-slate-200"></div>
+                                <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest px-2">
+                                    <DynamicText text="Specialized Portals" />
                                 </span>
-                            </p>
+                                <div className="h-[1px] flex-1 bg-slate-200"></div>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-3 w-full">
+                                {/* Vendor Card */}
+                                <button
+                                    type="button"
+                                    onClick={() => router.push("/vendor/login")}
+                                    className="group flex flex-col items-center text-center p-3.5 rounded-2xl bg-slate-50 hover:bg-emerald-50/70 border border-slate-200 hover:border-emerald-300 transition-all cursor-pointer shadow-xs hover:shadow-md"
+                                >
+                                    <div className="w-10 h-10 rounded-xl bg-white group-hover:bg-[#009662] text-[#009662] group-hover:text-white border border-slate-200/60 group-hover:border-transparent flex items-center justify-center transition-colors shadow-xs mb-2">
+                                        <Store className="w-5 h-5" />
+                                    </div>
+                                    <span className="text-xs font-bold text-slate-800 group-hover:text-emerald-950 transition-colors">
+                                        <DynamicText text="Wholesale Vendor" />
+                                    </span>
+                                    <span className="text-[10px] text-slate-500 group-hover:text-emerald-700 transition-colors mt-0.5">
+                                        <DynamicText text="Bulk Harvest Buyer" />
+                                    </span>
+                                </button>
+
+                                {/* Crop Doctor Card */}
+                                <button
+                                    type="button"
+                                    onClick={() => router.push("/auth-doctor")}
+                                    className="group flex flex-col items-center text-center p-3.5 rounded-2xl bg-slate-50 hover:bg-teal-50/70 border border-slate-200 hover:border-teal-300 transition-all cursor-pointer shadow-xs hover:shadow-md"
+                                >
+                                    <div className="w-10 h-10 rounded-xl bg-white group-hover:bg-teal-700 border border-slate-200/60 group-hover:border-transparent flex items-center justify-center transition-colors shadow-xs mb-2 p-2">
+                                        <Image
+                                            src="/briefcase-medical.png"
+                                            alt="Crop Doctor"
+                                            width={22}
+                                            height={22}
+                                            className="object-contain"
+                                        />
+                                    </div>
+                                    <span className="text-xs font-bold text-slate-800 group-hover:text-teal-950 transition-colors">
+                                        <DynamicText text="Crop Doctor" />
+                                    </span>
+                                    <span className="text-[10px] text-slate-500 group-hover:text-teal-700 transition-colors mt-0.5">
+                                        <DynamicText text="Agronomist & Clinic" />
+                                    </span>
+                                </button>
+                            </div>
                         </div>
 
                     </div>

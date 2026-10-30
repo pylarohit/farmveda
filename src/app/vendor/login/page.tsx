@@ -138,13 +138,19 @@ function VendorLoginContent() {
           <span>Back to Wholesale Marketplace</span>
         </Link>
 
-        <div className="flex items-center gap-2 text-xs">
-          <span className="text-slate-400">Not a wholesale buyer?</span>
+        <div className="flex items-center gap-3 text-xs">
           <Link
-            href="/home/sell-crops"
-            className="text-emerald-800 hover:text-emerald-950 font-bold hover:underline"
+            href="/doctor/login"
+            className="text-teal-700 hover:text-teal-900 font-bold hover:underline"
           >
-            Farmer Sell Hub &rarr;
+            Crop Doctor Portal &rarr;
+          </Link>
+          <span className="text-slate-300">|</span>
+          <Link
+            href="/auth"
+            className="text-slate-500 hover:text-slate-800 font-bold hover:underline"
+          >
+            Farmer Sign In &rarr;
           </Link>
         </div>
       </div>

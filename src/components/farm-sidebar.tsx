@@ -35,7 +35,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useState } from "react";
 import { toast } from "react-hot-toast";
 import { Separator } from "@/components/ui/separator";
-import { Stars } from "lucide-react";
+import { Stars, Stethoscope } from "lucide-react";
 import { useLanguage, useDynamicText } from "@/context/LanguageProvider";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 
@@ -63,6 +63,7 @@ export function FarmSidebar({ farmId }: { farmId: string }) {
   const textDelete = useDynamicText("Delete");
   const textDeleting = useDynamicText("Deleting..");
   const textFarm = useDynamicText("Farm");
+  const textCropDoctor = useDynamicText("Crop Doctor");
 
   async function signOut() {
     setSignoutLoading(true);
@@ -242,6 +243,28 @@ export function FarmSidebar({ farmId }: { farmId: string }) {
                 <p className="flex items-center gap-3 font-medium font-inter text-base text-white tracking-wide">
                   <LuActivity className="text-xl" />
                   {textDiseaseDetection}
+                </p>
+              </Link>
+            </SidebarMenuItem>
+
+            {/*Crop Doctor Consult*/}
+            <SidebarMenuItem
+              className={`flex cursor-pointer duration-200 ease-in-out rounded py-1 px-3
+            ${pathname === "/home/doctor-connect"
+                  ? "bg-emerald-600 scale-105 hover:bg-emerald-700"
+                  : "hover:bg-white/10 hover:scale-105"
+                }`}
+            >
+              <Link href="/home/doctor-connect" className="w-full">
+                <p className="flex items-center gap-3 font-medium font-inter text-base text-white tracking-wide">
+                  <Image
+                    src="/briefcase-medical.png"
+                    alt="Crop Doctor"
+                    width={20}
+                    height={20}
+                    className="object-contain brightness-0 invert"
+                  />
+                  {textCropDoctor}
                 </p>
               </Link>
             </SidebarMenuItem>

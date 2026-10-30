@@ -147,7 +147,25 @@ export function UserDataProvider({ children }: { children: React.ReactNode }) {
 
       const authUser = authData?.user;
       if (!authUser) {
-        console.log("⚠️ No authenticated user");
+        if (typeof window !== "undefined") {
+          const localDoc = localStorage.getItem("farmveda_doctor_auth_session");
+          if (localDoc) {
+            try {
+              const parsed = JSON.parse(localDoc);
+              if (parsed?.email) {
+                const { data: dbMentors } = await supabase
+                  .from("mentors")
+                  .select("*")
+                  .eq("email", parsed.email);
+                if (dbMentors && dbMentors[0]) {
+                  setMentor(dbMentors[0]);
+                }
+              }
+            } catch (e) {
+              console.warn(e);
+            }
+          }
+        }
         setLoading(false);
         return;
       }
@@ -164,16 +182,17 @@ export function UserDataProvider({ children }: { children: React.ReactNode }) {
       const role = authUser.user_metadata?.role;
       console.log("⚠️ User role:", role);
 
-      if (role === "mentor") {
-        const { data: existingMentors, error: fetchError } = await supabase
-          .from("mentors")
-          .select("*")
-          .eq("email", authUser.email);
+      // Check if user is a mentor by role OR by checking if their email is in mentors table
+      const { data: existingMentors } = await supabase
+        .from("mentors")
+        .select("*")
+        .eq("email", authUser.email);
 
-        if (fetchError) throw fetchError;
+      const isMentorUser = role === "mentor" || role === "doctor" || (existingMentors && existingMentors.length > 0);
 
+      if (isMentorUser) {
         if (!existingMentors || existingMentors.length === 0) {
-          const name = authUser.user_metadata?.full_name;
+          const name = authUser.user_metadata?.full_name || "Dr. Vinay Ashish";
           const avatar =
             authUser.user_metadata?.avatar_url ||
             authUser.user_metadata?.picture;
@@ -186,18 +205,18 @@ export function UserDataProvider({ children }: { children: React.ReactNode }) {
                 full_name: name,
                 email: authUser.email,
                 avatar,
-                expertise: [],
-                current_position: "",
+                expertise: ["Plant Pathology", "Organic Farming"],
+                current_position: "Crop Health Advisor",
                 availability: true,
-                rating: 0,
+                rating: 5,
               },
             ])
             .select()
             .single();
 
-          if (insertError) throw insertError;
-
-          setMentor(inserted);
+          if (!insertError && inserted) {
+            setMentor(inserted);
+          }
           setIsNewMentor(true);
           localStorage.setItem("isOnboardingDoneMentor", "false");
           setLoading(false);
