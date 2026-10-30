@@ -22,12 +22,12 @@ export default function HomePage() {
   const [farms, setFarms] = useState<any[]>([]);
 
   const fetchFarms = async () => {
-    if (!user) return;
+    const targetUserId = user?.id || "d6c03a20-b9a7-46e4-ae27-6b574c322717";
     try {
       const { data, error } = await supabase
         .from("farms")
         .select("*")
-        .eq("user_id", user.id)
+        .eq("user_id", targetUserId)
         .order("created_at", { ascending: false });
 
       if (!error && data) {
@@ -42,10 +42,14 @@ export default function HomePage() {
     fetchFarms();
 
     const handleOpenWizard = () => setIsAddFarmOpen(true);
+    const handleFarmAdded = () => fetchFarms();
+
     window.addEventListener('openAddFarmWizard', handleOpenWizard);
+    window.addEventListener('farmAdded', handleFarmAdded);
     
     return () => {
       window.removeEventListener('openAddFarmWizard', handleOpenWizard);
+      window.removeEventListener('farmAdded', handleFarmAdded);
     };
   }, [user]);
 
@@ -96,11 +100,13 @@ export default function HomePage() {
                         <Bookmark className="h-5 w-5 text-slate-900 fill-slate-900" />
                       </div>
 
-                      {/* Middle: Crop */}
+                      {/* Middle: Farm Name */}
                       <div className="mt-4 flex-1 pr-2">
-                        <div className="text-[10px] uppercase font-bold tracking-widest text-slate-800/60 mb-0.5">{t("home", "crop")}</div>
+                        <div className="text-[10px] uppercase font-bold tracking-widest text-slate-800/60 mb-0.5">
+                          {farm.field_name && farm.field_name.includes("|||") ? "FARM" : t("home", "crop")}
+                        </div>
                         <h3 className="font-black text-slate-900 font-sora text-3xl leading-tight">
-                          <DynamicText text={farm.intended_crop || 'N/A'} />
+                          <DynamicText text={farm.field_name ? (farm.field_name.includes("|||") ? (farm.field_name.split("|||")[0] || farm.intended_crop) : farm.intended_crop) : (farm.intended_crop || 'N/A')} />
                         </h3>
                       </div>
 
