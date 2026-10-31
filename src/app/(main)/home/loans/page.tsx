@@ -2162,15 +2162,17 @@ export default function SchemesPage() {
   // Modal for scheduling call on accept (main page)
   const [mainSchedulingBooking, setMainSchedulingBooking] = useState<EnrichedBooking | null>(null);
 
-  // Sync with URL query params (e.g. from notification clicks)
+  // Sync with URL query params and custom assistant events
   useEffect(() => {
     if (typeof window === "undefined") return;
+
     const checkParams = () => {
       const params = new URLSearchParams(window.location.search);
       const tabParam = params.get("tab");
       const subParam = params.get("sub");
+
       if (tabParam === "farmer" || tabParam === "govt") {
-        setActiveTab(tabParam);
+        setActiveTab((prev) => (prev !== tabParam ? tabParam : prev));
       }
       if (
         subParam === "all" ||
@@ -2178,12 +2180,31 @@ export default function SchemesPage() {
         subParam === "received-requests" ||
         subParam === "my-bookings"
       ) {
-        setFarmerSubTab(subParam as any);
+        setFarmerSubTab((prev) => (prev !== subParam ? (subParam as any) : prev));
       }
     };
+
+    const handleCustomSwitch = (e: any) => {
+      if (e?.detail?.tab === "farmer" || e?.detail?.tab === "govt") {
+        setActiveTab(e.detail.tab);
+      }
+      if (e?.detail?.sub) {
+        setFarmerSubTab(e.detail.sub);
+      }
+    };
+
     checkParams();
     window.addEventListener("popstate", checkParams);
-    return () => window.removeEventListener("popstate", checkParams);
+    window.addEventListener("farmveda:switch-tab", handleCustomSwitch);
+
+    // Watch for URL search changes within the same client session
+    const interval = setInterval(checkParams, 200);
+
+    return () => {
+      window.removeEventListener("popstate", checkParams);
+      window.removeEventListener("farmveda:switch-tab", handleCustomSwitch);
+      clearInterval(interval);
+    };
   }, []);
 
   useEffect(() => {

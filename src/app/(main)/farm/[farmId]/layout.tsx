@@ -10,6 +10,7 @@ import { NotificationBell } from "@/components/NotificationBell";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { useLanguage, useDynamicText } from "@/context/LanguageProvider";
 import { useParams } from "next/navigation";
+import { FarmerAssistantWidget } from "@/components/assistant/FarmerAssistantWidget";
 
 export default function FarmLayout({ children }: { children: ReactNode }) {
     const { user } = useUserData();
@@ -59,6 +60,9 @@ export default function FarmLayout({ children }: { children: ReactNode }) {
                     <main className="flex-1 flex flex-col min-h-0 w-full overflow-hidden">
                         {children}
                     </main>
+
+                    {/* Floating Farmer Assistant in Bottom Corner */}
+                    <FarmerAssistantWidget />
                 </div>
             </div>
         </SidebarProvider>
