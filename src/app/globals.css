@@ -5,9 +5,9 @@
 
 @theme {
   /* FONTS */
-  --font-sora: "Sora", sans-serif;
-  --font-inter: "Inter", sans-serif;
-  --font-raleway: "Raleway", sans-serif;
+  --font-sora: var(--font-sora), "Sora", sans-serif;
+  --font-inter: var(--font-inter), "Inter", sans-serif;
+  --font-raleway: var(--font-raleway), "Raleway", sans-serif;
 }
 
 @theme inline {
